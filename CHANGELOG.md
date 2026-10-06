@@ -11,10 +11,14 @@ its Home Assistant name.
   (also `ghcr.io/geiserx/radares-anunciados-ha:0.3.0`). The old image name keeps 0.1.0 and 0.2.0 and
   gets no new tags, so change the image line to update.
 - The published feed moved to https://geiserx.github.io/radares-anunciados-ha/. The old Pages address
-  answers 404. The GitHub URL redirects, so the blueprint re-imports from its old link as well.
-- The name `radares-anunciados` now belongs to the phone app, which reads this feed. The Python
-  package, the `radares` command, the `RADARES_*` settings, the `radares_` metrics, the cache folder
-  and the blueprint file keep their names, so a running install needs only the new image.
+  answers 404.
+- The name `radares-anunciados` now belongs to the phone app, which reads this feed, so links to
+  `github.com/GeiserX/radares-anunciados` reach the app, not this repo. A blueprint imported before
+  0.3.0 points there and can no longer re-import. Its rules did not change in 0.3.0, so nothing is
+  needed now; to get later changes, import it again from
+  [Getting started](docs/getting-started.md#3-import-the-alert-blueprint) and let it replace your copy.
+- The Python package, the `radares` command, the `RADARES_*` settings, the `radares_` metrics, the
+  cache folder and the blueprint file keep their names, so a running install needs only the new image.
 
 **Added**
 

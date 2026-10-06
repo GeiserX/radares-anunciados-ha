@@ -71,6 +71,10 @@ says `Failed to generate automation from blueprint: Missing input phones`. Pick 
 
 Sound, Time sensitive and Critical alert keep their values.
 
+A blueprint imported before 0.3.0 points at the project's old address, which now belongs to the phone
+app, so **Re-import blueprint** fails for it. Use the import button above instead and let it replace
+your copy; later re-imports then work again.
+
 ## 4. Set up each phone
 
 **iPhone.** Allow location **Always** and **Precise** for the app. The iOS app only downloads new
