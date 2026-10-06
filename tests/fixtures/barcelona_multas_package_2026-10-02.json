@@ -1,0 +1,130 @@
+{
+ "success": true,
+ "result": {
+  "name": "denuncies_sancions_transit_bcn_detall",
+  "license_id": "CC-BY-4.0",
+  "metadata_modified": "2026-09-01T08:45:46.899254",
+  "resources": [
+   {
+    "id": "e483d5d2-132b-4d70-940c-03f63e73fe58",
+    "name": "2025_1t_denuncies_sancions_transit_detall.csv",
+    "format": "CSV",
+    "datastore_active": true
+   },
+   {
+    "id": "0b463a28-e6c8-40dd-9416-f076be04fd66",
+    "name": "2025_2t_denuncies_sancions_transit_detall.csv",
+    "format": "CSV",
+    "datastore_active": true
+   },
+   {
+    "id": "fa17916a-7004-4c57-a7da-5660c50dc846",
+    "name": "2025_3t_denuncies_sancions_transit_detall.csv",
+    "format": "CSV",
+    "datastore_active": true
+   },
+   {
+    "id": "5693bb33-9212-44df-9c67-a90a5fc06838",
+    "name": "2025_4t_denuncies_sancions_transit_detall.csv",
+    "format": "CSV",
+    "datastore_active": true
+   },
+   {
+    "id": "67ced2cc-3eee-4e05-831d-d4805fe590fd",
+    "name": "2025_denuncies_sancions_transit_detall.json",
+    "format": "JSON",
+    "datastore_active": false
+   },
+   {
+    "id": "13d6e4ad-c6af-49be-adfb-677c7a3a0fc9",
+    "name": "2024_1t_denuncies_sancions_transit_detall.csv",
+    "format": "CSV",
+    "datastore_active": true
+   },
+   {
+    "id": "0e1a8397-6594-4cf1-b1d7-c4df5d2d2598",
+    "name": "2024_2t_denuncies_sancions_transit_detall.csv",
+    "format": "CSV",
+    "datastore_active": true
+   },
+   {
+    "id": "32ea930b-0576-4084-bf44-02c5e27d5405",
+    "name": "2024_3t_denuncies_sancions_transit_detall.csv",
+    "format": "CSV",
+    "datastore_active": true
+   },
+   {
+    "id": "f777fb65-3a12-4edc-9842-b18ba8a774a6",
+    "name": "2024_4t_denuncies_sancions_transit_detall.csv",
+    "format": "CSV",
+    "datastore_active": true
+   },
+   {
+    "id": "c682d9ee-6c34-45ff-bea0-e51332a80561",
+    "name": "2024_denuncies_sancions_transit_detall.json",
+    "format": "JSON",
+    "datastore_active": false
+   },
+   {
+    "id": "0821baa5-ea3b-49fa-ac10-143ab26d8657",
+    "name": "2023_1t_denuncies_sancions_transit_detall.csv",
+    "format": "CSV",
+    "datastore_active": true
+   },
+   {
+    "id": "884e3d45-1eb1-4ee7-958b-b5a03e9ece23",
+    "name": "2023_2t_denuncies_sancions_transit_detall.csv",
+    "format": "CSV",
+    "datastore_active": true
+   },
+   {
+    "id": "2b4b09b6-f459-4132-be27-f479e76a4d2c",
+    "name": "2023_3t_denuncies_sancions_transit_detall.csv",
+    "format": "CSV",
+    "datastore_active": true
+   },
+   {
+    "id": "ab19d98d-f10d-454b-be8c-1c8d1ea328e5",
+    "name": "2023_4t_denuncies_sancions_transit_detall.csv",
+    "format": "CSV",
+    "datastore_active": true
+   },
+   {
+    "id": "56dc252e-99f7-4c41-b4ac-2a87b36ae2a1",
+    "name": "2023_denuncies_sancions_transit_detall.json",
+    "format": "JSON",
+    "datastore_active": false
+   },
+   {
+    "id": "c51dee3c-8429-4746-93a0-f2bd45b9d67e",
+    "name": "2022_1t_denuncies_sancions_transit_detall.csv",
+    "format": "CSV",
+    "datastore_active": true
+   },
+   {
+    "id": "bb87c33b-1d30-4e61-8c78-fa83473ce6d6",
+    "name": "2022_2t_denuncies_sancions_transit_detall.csv",
+    "format": "CSV",
+    "datastore_active": true
+   },
+   {
+    "id": "08b93b6a-7679-4014-acc0-e04aeb698595",
+    "name": "2022_3t_denuncies_sancions_transit_detall.csv",
+    "format": "CSV",
+    "datastore_active": true
+   },
+   {
+    "id": "b06b5e05-fbb7-4ff1-aeb4-f8317d5b6b8a",
+    "name": "2022_4t_denuncies_sancions_transit_detall.csv",
+    "format": "CSV",
+    "datastore_active": true
+   },
+   {
+    "id": "efb70646-8528-4d82-a49c-56e0802784bf",
+    "name": "2022_denuncies_sancions_transit_detall.json",
+    "format": "JSON",
+    "datastore_active": false
+   }
+  ]
+ }
+}

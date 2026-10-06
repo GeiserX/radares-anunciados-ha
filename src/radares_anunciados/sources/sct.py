@@ -211,6 +211,7 @@ def fetch_trailer(ctx: Context) -> SourceResult:
 
 SOURCE = Source(
     key="sct",
+    cameras=True,
     fetch=fetch_fixed,
     attribution=ATTRIBUTION,
     licence=LICENCE,
@@ -220,6 +221,7 @@ SOURCE = Source(
 
 TRAILER = Source(
     key="sct_remolc",
+    cameras=True,
     fetch=fetch_trailer,
     attribution=ATTRIBUTION,
     licence=LICENCE,

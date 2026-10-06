@@ -316,6 +316,7 @@ def fetch(ctx: Context) -> SourceResult:
 
 SOURCE = Source(
     key="osm",
+    cameras=True,
     fetch=fetch,
     attribution=ATTRIBUTION,
     licence="ODbL 1.0",

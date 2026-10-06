@@ -142,7 +142,9 @@ def collect(day: date, save_history: bool = True) -> Collected:
         if r.source in keys_run
         and (ctx.provinces is None or r.province is None or r.province in ctx.provinces)
     ]
-    return Collected(feed.merge(radars + remembered, day), lists, stretches, outcomes)
+    missing = frozenset(o.key for o in outcomes if o.fetched_at is None)
+    merged = feed.merge(radars + remembered, day, missing)
+    return Collected(merged, lists, stretches, outcomes)
 
 
 def _iso(ts: float | None) -> str | None:

@@ -56,6 +56,10 @@ class Source:
     # True: an authority publishes these positions. False: a crowd-sourced map
     # (OSM), whose camera within feed.DUPLICATE_M of an official radar is a copy.
     official: bool = True
+    # True: it publishes cameras (feed.CAMERAS). While it has no result at all,
+    # feed.merge holds back the fines spots in its provinces: one of its cameras
+    # may stand beside a spot, which then must not alert as a mobile radar.
+    cameras: bool = False
     # False: read only when RADARES_SOURCES names it ("default,osm_notes"). A
     # source no install needs that puts load on a shared service (the OSM notes
     # API) is read once, by the published feed.

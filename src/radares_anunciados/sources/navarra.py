@@ -207,6 +207,7 @@ def fetch(ctx: Context) -> SourceResult:
 
 SOURCE = Source(
     key="navarra",
+    cameras=True,
     fetch=fetch,
     attribution=ATTRIBUTION,
     licence=LICENCE,

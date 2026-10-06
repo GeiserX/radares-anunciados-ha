@@ -15,6 +15,7 @@ from datetime import date
 from .. import net, store
 from ..model import SourceResult, WeeklyList
 from . import (
+    barcelona_multas,
     dgt,
     dgt_freshness,
     dgt_invive,
@@ -23,6 +24,7 @@ from . import (
     euskadi,
     leon,
     madrid,
+    madrid_multas,
     murcia,
     navarra,
     osm,
@@ -51,6 +53,8 @@ REGISTRY: dict[str, Source] = {
         madrid.SOURCE,
         salamanca.SOURCE,
         leon.SOURCE,
+        barcelona_multas.SOURCE,
+        madrid_multas.SOURCE,
     )
 }
 

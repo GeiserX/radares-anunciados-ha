@@ -4,12 +4,15 @@ write it all as GeoJSON."""
 from __future__ import annotations
 
 import json
+import logging
 from dataclasses import replace
 from datetime import date, timedelta
 
 from .geo import distance_m
 from .model import REPORTED, Radar, Stretch
 from .sources import REGISTRY
+
+log = logging.getLogger(__name__)
 
 # A mapped camera (OSM) this close to a radar an authority publishes is the same
 # camera mapped twice.
@@ -19,8 +22,9 @@ DUPLICATE_M = 150
 SECTION_COPY_M = 1000
 
 # Kinds that stand for one camera at one place. A street from a police list
-# (mobile_announced) and a circle of a DGT mobile-radar stretch (mobile_stretch)
-# are no camera, so a mapped camera near one is no copy of it.
+# (mobile_announced), a circle of a DGT mobile-radar stretch (mobile_stretch) and a
+# place where fines show a radar on some days only (mobile_recurring) are no
+# camera standing there, so a mapped camera near one is no copy of it.
 CAMERAS = ("fixed", "section", "trailer")
 
 
@@ -41,21 +45,44 @@ def _mapped_source(key: str) -> bool:
     return source is not None and not source.official
 
 
-def merge(radars: list[Radar], day: date) -> list[Radar]:
+def merge(radars: list[Radar], day: date, missing: frozenset[str] = frozenset()) -> list[Radar]:
     """Radars in force on ``day`` and dormant ones, active first, then by id,
     without duplicates.
 
-    Dropped: mapped cameras that copy an official radar, and any radar at exactly the
-    spot of one already kept (the DGT lists both directions of a section with
-    the same two end points). The phone watches only 20 zones; two at one spot
-    waste one. A dormant circle under an active one gives way to it.
+    Dropped: mapped cameras that copy an official radar, a place where fines show
+    a mobile radar (``mobile_recurring``) within DUPLICATE_M of a camera of another
+    source, official or mapped (the camera already warns there, with its own
+    limit), and any radar at exactly the spot of one already kept (the DGT lists
+    both directions of a section with the same two end points). The phone watches
+    only 20 zones; two at one spot waste one. A dormant circle under an active one
+    gives way to it.
 
     A report nobody published (``REPORTED``) is kept as it is and takes no spot:
     it never drops or replaces another radar, and nothing drops it.
+
+    ``missing``: the selected sources with no result at all this run (failed, and
+    no last good result). While a camera source among them covers a fines spot's
+    province, the spot is held back: the camera that would drop it is unknown.
     """
     wanted = (r for r in radars if not r.active or r.active_on(day))
     ordered = sorted(wanted, key=lambda r: (not r.active, r.id))
     official = [r for r in ordered if _official(r)]
+    cameras = [r for r in ordered if r.kind in CAMERAS]
+    blind = [REGISTRY[k] for k in sorted(missing) if k in REGISTRY and REGISTRY[k].cameras]
+    held = [
+        r
+        for r in ordered
+        if r.kind == "mobile_recurring"
+        and any(s.provinces is None or r.province in s.provinces for s in blind)
+    ]
+    if held:
+        log.warning(
+            "%d fines spot(s) held back this run: %s gave no cameras yet, and one may stand "
+            "beside a spot",
+            len(held),
+            ", ".join(s.key for s in blind),
+        )
+    ordered = [r for r in ordered if all(r is not h for h in held)]
     kept: list[Radar] = []
     spots: set[tuple[float, float]] = set()
     for r in ordered:
@@ -67,6 +94,11 @@ def merge(radars: list[Radar], day: date) -> list[Radar]:
             continue
         if _mapped(r) and any(
             distance_m((r.lat, r.lon), (o.lat, o.lon)) <= DUPLICATE_M for o in official
+        ):
+            continue
+        if r.kind == "mobile_recurring" and any(
+            c.source != r.source and distance_m((r.lat, r.lon), (c.lat, c.lon)) <= DUPLICATE_M
+            for c in cameras
         ):
             continue
         spots.add(spot)

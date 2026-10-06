@@ -1,0 +1,60 @@
+{
+ "success": true,
+ "result": {
+  "name": "213605-0-callejero-oficial-madrid",
+  "license_id": "cc-by",
+  "license_title": "Creative Commons Attribution 4.0 International (CC BY 4.0)",
+  "modified": "2026-09-28T00:00:00.000000",
+  "resources": [
+   {
+    "id": "213605-5-callejero-oficial-madrid",
+    "description": "Callejero oficial del Ayuntamiento de Madrid. Contenido y estructura del fichero",
+    "format": "PDF",
+    "last_modified": null,
+    "url": "https://datos.madrid.es/dataset/213605-0-callejero-oficial-madrid/resource/213605-5-callejero-oficial-madrid/download/callejero20oficial20-20descripcic3b3n20de20ficheros.pdf"
+   },
+   {
+    "id": "213605-1-callejero-oficial-madrid-csv",
+    "description": "Callejero con evolución histórica. Relación de direcciones con su evolución histórica",
+    "format": "CSV",
+    "last_modified": "2026-09-28T09:38:56.620040",
+    "url": "https://datos.madrid.es/dataset/213605-0-callejero-oficial-madrid/resource/213605-1-callejero-oficial-madrid-csv/download/direccionesevolucionhistorica_20260927.csv"
+   },
+   {
+    "id": "213605-2-callejero-oficial-madrid-csv",
+    "description": "Callejero con evolución histórica. Relación de viales con su evolución histórica",
+    "format": "CSV",
+    "last_modified": "2026-09-28T09:39:31.473408",
+    "url": "https://datos.madrid.es/dataset/213605-0-callejero-oficial-madrid/resource/213605-2-callejero-oficial-madrid-csv/download/vialesevolucionhistorica_20260927.csv"
+   },
+   {
+    "id": "213605-4-callejero-oficial-madrid-csv",
+    "description": "Callejero vigente. Relación de direcciones vigentes, con coordenadas",
+    "format": "CSV",
+    "last_modified": "2026-09-28T09:36:50.101256",
+    "url": "https://datos.madrid.es/dataset/213605-0-callejero-oficial-madrid/resource/213605-4-callejero-oficial-madrid-csv/download/direccionesvigentes_20260927.csv"
+   },
+   {
+    "id": "213605-3-callejero-oficial-madrid-csv",
+    "description": "Callejero vigente. Relación de viales por distrito y barrio, con intervalos de numeración",
+    "format": "CSV",
+    "last_modified": "2026-09-28T09:38:10.581808",
+    "url": "https://datos.madrid.es/dataset/213605-0-callejero-oficial-madrid/resource/213605-3-callejero-oficial-madrid-csv/download/vialesvigentesdistritosbarrios_20260927.csv"
+   },
+   {
+    "id": "213605-0-callejero-oficial-madrid-csv",
+    "description": "Callejero vigente. Relación de viales por distrito, con intervalos de numeración",
+    "format": "CSV",
+    "last_modified": "2026-09-28T09:37:43.469161",
+    "url": "https://datos.madrid.es/dataset/213605-0-callejero-oficial-madrid/resource/213605-0-callejero-oficial-madrid-csv/download/vialesvigentesdistritos_20260927.csv"
+   },
+   {
+    "id": "213605-6-callejero-oficial-madrid-csv",
+    "description": "Callejero vigente. Relación de viales vigentes",
+    "format": "CSV",
+    "last_modified": "2026-09-28T09:37:14.573129",
+    "url": "https://datos.madrid.es/dataset/213605-0-callejero-oficial-madrid/resource/213605-6-callejero-oficial-madrid-csv/download/vialesvigentes_20260927.csv"
+   }
+  ]
+ }
+}

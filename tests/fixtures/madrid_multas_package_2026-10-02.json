@@ -1,0 +1,90 @@
+{
+ "success": true,
+ "result": {
+  "name": "210104-0-multas-circulacion-detalle",
+  "license_id": "cc-by",
+  "modified": "2026-10-02T00:00:00.000000",
+  "resources": [
+   {
+    "id": "210104-373-multas-circulacion-detalle",
+    "description": "Detalle. Noviembre 2025",
+    "format": "CSV",
+    "created": "2026-04-10T00:00:00",
+    "last_modified": "2026-04-10T09:04:17.993000",
+    "url": "https://datos.madrid.es/dataset/210104-0-multas-circulacion-detalle/resource/210104-373-multas-circulacion-detalle/download/202511detalle.csv"
+   },
+   {
+    "id": "210104-374-multas-circulacion-detalle",
+    "description": "Agrupadas-excluidas. Noviembre 2025",
+    "format": "CSV",
+    "created": "2026-04-10T00:00:00",
+    "last_modified": "2026-04-10T09:06:09.348000",
+    "url": "https://datos.madrid.es/dataset/210104-0-multas-circulacion-detalle/resource/210104-374-multas-circulacion-detalle/download/202511agrupadas.csv"
+   },
+   {
+    "id": "210104-375-multas-circulacion-detalle",
+    "description": "Detalle. Diciembre 2025",
+    "format": "CSV",
+    "created": "2026-05-21T00:00:00",
+    "last_modified": "2026-05-21T07:32:36.324440",
+    "url": "https://datos.madrid.es/dataset/210104-0-multas-circulacion-detalle/resource/210104-375-multas-circulacion-detalle/download/202512detalle.csv"
+   },
+   {
+    "id": "210104-376-multas-circulacion-detalle",
+    "description": "Agrupadas-excluidas. Diciembre 2025",
+    "format": "CSV",
+    "created": "2026-05-21T00:00:00",
+    "last_modified": "2026-05-21T07:34:20.821375",
+    "url": "https://datos.madrid.es/dataset/210104-0-multas-circulacion-detalle/resource/210104-376-multas-circulacion-detalle/download/202512agrupadas.csv"
+   },
+   {
+    "id": "210104-377-multas-circulacion-detalle",
+    "description": "Detalle. Enero 2026",
+    "format": "CSV",
+    "created": "2026-06-19T00:00:00",
+    "last_modified": "2026-06-19T07:32:33.642798",
+    "url": "https://datos.madrid.es/dataset/210104-0-multas-circulacion-detalle/resource/210104-377-multas-circulacion-detalle/download/202601detalle.csv"
+   },
+   {
+    "id": "210104-378-multas-circulacion-detalle",
+    "description": "Agrupadas-excluidas. Enero 2026",
+    "format": "CSV",
+    "created": "2026-06-19T00:00:00",
+    "last_modified": "2026-06-19T07:34:30.427334",
+    "url": "https://datos.madrid.es/dataset/210104-0-multas-circulacion-detalle/resource/210104-378-multas-circulacion-detalle/download/202601agrupadas.csv"
+   },
+   {
+    "id": "210104-379-multas-circulacion-detalle",
+    "description": "Detalle. Febrero 2026",
+    "format": "CSV",
+    "created": "2026-10-02T00:00:00",
+    "last_modified": "2026-10-02T07:52:11.124799",
+    "url": "https://datos.madrid.es/dataset/210104-0-multas-circulacion-detalle/resource/210104-379-multas-circulacion-detalle/download/202602detalle.csv"
+   },
+   {
+    "id": "210104-380-multas-circulacion-detalle",
+    "description": "Agrupadas-excluidas. Febrero 2026",
+    "format": "CSV",
+    "created": "2026-10-02T00:00:00",
+    "last_modified": "2026-10-02T07:54:07.084252",
+    "url": "https://datos.madrid.es/dataset/210104-0-multas-circulacion-detalle/resource/210104-380-multas-circulacion-detalle/download/202602agrupadas.csv"
+   },
+   {
+    "id": "210104-82-multas-circulacion-detalle-txt",
+    "description": "Detalle. Septiembre 2019",
+    "format": "TXT",
+    "created": "2019-12-13T13:08:54",
+    "last_modified": null,
+    "url": "https://datos.madrid.es/dataset/210104-0-multas-circulacion-detalle/resource/210104-82-multas-circulacion-detalle-txt/download/210104-82-multas-circulacion-detalle-txt.txt"
+   },
+   {
+    "id": "210104-200-multas-circulacion-detalle",
+    "description": "Multas de circulación: detalle. Contenido y estructura del fichero",
+    "format": "PDF",
+    "created": "2014-12-17T00:00:00",
+    "last_modified": null,
+    "url": "https://datos.madrid.es/dataset/210104-0-multas-circulacion-detalle/resource/210104-200-multas-circulacion-detalle/download/estructura_ds_multas.pdf"
+   }
+  ]
+ }
+}

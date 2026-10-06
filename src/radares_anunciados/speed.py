@@ -49,7 +49,7 @@ def fill_limits(radars: list[Radar]) -> list[Radar]:
 
 def fallback_kmh(radar: Radar) -> int:
     """The limit to size a zone by when nobody published one."""
-    if radar.kind == "mobile_announced":
+    if radar.kind in ("mobile_announced", "mobile_recurring"):  # city streets
         return URBAN_KMH
     if _MOTORWAY.search(radar.name):
         return MOTORWAY_KMH

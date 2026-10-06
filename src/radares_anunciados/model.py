@@ -32,7 +32,9 @@ class Radar:
 
     id: str  # stable across runs: source + source id (+ circle index)
     source: str  # "dgt", "osm", "murcia"
-    kind: str  # "fixed", "section", "trailer", "mobile_announced", "mobile_stretch", REPORTED
+    # "fixed", "section", "trailer", "mobile_announced", "mobile_stretch", REPORTED, and
+    # "mobile_recurring": a place where traffic fines show a radar stood on some days
+    kind: str
     name: str  # what the driver reads in the alert
     lat: float
     lon: float

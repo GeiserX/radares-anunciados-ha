@@ -34,6 +34,7 @@ WORDS = {
     "dr": "Doctor",
     "dra": "Doctora",
     "fdez": "Fernández",
+    "fco": "Francisco",
     "gral": "General",
     "glez": "González",
     "gzlez": "González",

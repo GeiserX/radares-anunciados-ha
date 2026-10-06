@@ -111,10 +111,12 @@ def select(
     """At most ``cap`` radars, and how many were left out.
 
     In order: streets of a list in force (they change weekly and matter most),
-    then fixed and section radars nearest to home, then the circles along
-    stretches where mobile radars may stand (a radar is there only some days),
-    nearest first, then dormant streets, the most recently announced first.
-    Never fails for being over the cap."""
+    then fixed and section radars nearest to home, then the places where fines
+    show a mobile radar stood on several days, then the circles along stretches
+    where mobile radars may stand, each nearest first, then dormant streets, the
+    most recently announced first. A fines place comes before a stretch circle:
+    one zone marks a spot where a radar did stand, while a stretch takes many
+    circles for kilometres where one only may. Never fails for being over the cap."""
     if len(radars) <= cap:
         return radars, 0
 
@@ -125,13 +127,15 @@ def select(
 
     listed = sorted((r for r in radars if r.active and r.valid_to), key=lambda r: r.id)
     standing = [r for r in radars if r.active and not r.valid_to]
-    fixed = nearest_first([r for r in standing if r.kind != "mobile_stretch"])
+    later = ("mobile_recurring", "mobile_stretch")
+    fixed = nearest_first([r for r in standing if r.kind not in later])
+    recurring = nearest_first([r for r in standing if r.kind == "mobile_recurring"])
     stretch = nearest_first([r for r in standing if r.kind == "mobile_stretch"])
     dormant = sorted(
         (r for r in radars if not r.active),
         key=lambda r: (-(r.valid_to.toordinal() if r.valid_to else 0), r.id),
     )
-    kept = (listed + fixed + stretch + dormant)[:cap]
+    kept = (listed + fixed + recurring + stretch + dormant)[:cap]
     return kept, len(radars) - len(kept)
 
 

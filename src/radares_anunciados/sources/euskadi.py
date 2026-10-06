@@ -123,6 +123,7 @@ def fetch(ctx: Context) -> SourceResult:
 
 SOURCE = Source(
     key="euskadi",
+    cameras=True,
     fetch=fetch,
     attribution=ATTRIBUTION,
     licence=LICENCE,

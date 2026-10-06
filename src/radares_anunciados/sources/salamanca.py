@@ -182,6 +182,7 @@ def fetch(ctx: Context) -> SourceResult:
 
 SOURCE = Source(
     key="salamanca",
+    cameras=True,
     fetch=fetch,
     attribution=ATTRIBUTION,
     licence=(
