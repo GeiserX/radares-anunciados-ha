@@ -1,4 +1,4 @@
-# AGENTS.md: radares-anunciados
+# AGENTS.md: radares-anunciados-ha
 
 An open feed of the speed radars announced in Spain, merged into one GeoJSON file, plus a Home Assistant
 side that turns the radars near you into zones so the Home Assistant companion app alerts you as you

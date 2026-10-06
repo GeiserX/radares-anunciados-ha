@@ -5,10 +5,12 @@
 <h1 align="center">Radares Anunciados</h1>
 
 <p align="center">
-  <a href="LICENSE"><img src="https://img.shields.io/github/license/GeiserX/radares-anunciados?style=flat-square" alt="License"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/GeiserX/radares-anunciados-ha?style=flat-square" alt="License"></a>
 </p>
 
 Radares Anunciados is a Docker service that gathers the speed radars announced in Spain into one open GeoJSON feed. Its Home Assistant side turns the radars near you into zones, so the Home Assistant companion app alerts you when you drive toward one.
+
+This repo is the data side: the sources, the open feed and the Home Assistant zones. The phone app (iPhone now, Android later) lives at https://github.com/GeiserX/radares-anunciados and reads this feed.
 
 ## Features
 
@@ -24,9 +26,9 @@ Radares Anunciados is a Docker service that gathers the speed radars announced i
 
 ```sh
 export HA_URL=https://homeassistant.example.org HA_TOKEN='<long-lived token>'
-docker run --rm -e HA_URL -e HA_TOKEN drumsergio/radares-anunciados:0.2.0 sync --dry-run
+docker run --rm -e HA_URL -e HA_TOKEN drumsergio/radares-anunciados-ha:0.3.0 sync --dry-run
 mkdir -p data && sudo chown 65534:65534 data  # the container runs as nobody
-docker run -d --name radares -e HA_URL -e HA_TOKEN -v ./data:/data -e RADARES_CACHE=/data drumsergio/radares-anunciados:0.2.0
+docker run -d --name radares -e HA_URL -e HA_TOKEN -v ./data:/data -e RADARES_CACHE=/data drumsergio/radares-anunciados-ha:0.3.0
 ```
 
 Then import the [alert blueprint](blueprints/radar_zone_alert.yaml). Full steps in [Getting started](docs/getting-started.md).
@@ -35,11 +37,11 @@ Then import the [alert blueprint](blueprints/radar_zone_alert.yaml). Full steps 
 
 Every 6 hours a GitHub Actions run on a self-hosted runner in Spain builds the feed for all of Spain from
 every source, including those that answer only Spanish addresses, and publishes it on GitHub Pages, at
-[geiserx.github.io/radares-anunciados](https://geiserx.github.io/radares-anunciados/):
+[geiserx.github.io/radares-anunciados-ha](https://geiserx.github.io/radares-anunciados-ha/):
 
-- [`feed.geojson`](https://geiserx.github.io/radares-anunciados/feed.geojson): every radar as a point and every
+- [`feed.geojson`](https://geiserx.github.io/radares-anunciados-ha/feed.geojson): every radar as a point and every
   watched stretch as a line, each with its source, attribution, limit and link
-- [`status.json`](https://geiserx.github.io/radares-anunciados/status.json): per source, `ok`, `stale` (this run
+- [`status.json`](https://geiserx.github.io/radares-anunciados-ha/status.json): per source, `ok`, `stale` (this run
   failed, its last good copy is used) or `missing`, with record counts, the time of its data and the
   source's own last update date when it gives one
 - a map of the feed

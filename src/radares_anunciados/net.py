@@ -18,7 +18,7 @@ from pathlib import Path
 
 log = logging.getLogger(__name__)
 
-USER_AGENT = "radares-anunciados (+https://github.com/GeiserX/radares-anunciados)"
+USER_AGENT = "radares-anunciados-ha (+https://github.com/GeiserX/radares-anunciados-ha)"
 
 # Set by ``fail_fast``: (seconds, hosts). A request to one of the hosts gets one
 # try and at most that many seconds.

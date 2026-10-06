@@ -1,5 +1,43 @@
 # Changelog
 
+## 0.3.0 (2026-10-06)
+
+Warns where Barcelona's and Madrid's mobile radars stand, publishes every Spain-only source, and takes
+its Home Assistant name.
+
+**Changed, read before updating**
+
+- The project is now `radares-anunciados-ha`. The image is `drumsergio/radares-anunciados-ha:0.3.0`
+  (also `ghcr.io/geiserx/radares-anunciados-ha:0.3.0`). The old image name keeps 0.1.0 and 0.2.0 and
+  gets no new tags, so change the image line to update.
+- The published feed moved to https://geiserx.github.io/radares-anunciados-ha/. The old Pages address
+  answers 404. The GitHub URL redirects, so the blueprint re-imports from its old link as well.
+- The name `radares-anunciados` now belongs to the phone app, which reads this feed. The Python
+  package, the `radares` command, the `RADARES_*` settings, the `radares_` metrics, the cache folder
+  and the blueprint file keep their names, so a running install needs only the new image.
+
+**Added**
+
+- Fines-derived mobile radar spots for Barcelona and Madrid (`barcelona_multas`, `madrid_multas`): a
+  place where the city's open traffic-fine data shows a camera fining in short sessions on scattered
+  days. Each spot is a zone named after the place. A spot within 150 m of a camera from another source
+  is dropped, and spots are held back for a run in which a camera source has no result yet. Madrid's
+  spots are placed with the city's official street register.
+- OpenStreetMap enforcement relations: a camera takes its direction and limit from them when the
+  node has none, and an average-speed relation becomes a section with its two ends. A mapped section
+  that copies a published one is dropped.
+- `osm_notes`, off by default: open OpenStreetMap notes reporting a speed camera in Spain, shown on the
+  published map as unconfirmed. They never become zones.
+- `LICENSE-DATA.md` gives each source's reuse terms, and the basis under Ley 37/2007 for those that
+  publish none.
+- `status.json` gives each source's own last update date, `updated`, when the source gives one, and
+  counts unconfirmed reports apart from radars.
+
+**Fixed**
+
+- The published feed no longer shows the Basque Country and Navarra as `missing`. Their servers
+  answer only Spanish addresses, and the feed is now built on a runner in Spain.
+
 ## 0.2.0 (2026-10-02)
 
 Covers all of Spain, and keeps warning when a source fails or a week has no list.

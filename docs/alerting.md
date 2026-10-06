@@ -34,7 +34,7 @@ To let Prometheus scrape it from another host, publish the port:
 
 ```yaml
 services:
-  radares-anunciados:
+  radares-anunciados-ha:
     # ...as in Getting started
     ports:
       - "9464:9464"
@@ -72,14 +72,14 @@ one.
 
 ```yaml
 groups:
-  - name: radares-anunciados
+  - name: radares-anunciados-ha
     rules:
       - alert: RadaresRunsFailing
         expr: radares_consecutive_failed_runs >= 3
         labels:
           severity: warning
         annotations:
-          summary: "radares-anunciados failed {{ $value }} runs in a row"
+          summary: "radares-anunciados-ha failed {{ $value }} runs in a row"
           description: >-
             Home Assistant keeps the previous zones, so new radars are not loaded.
             The container log says why.
@@ -89,7 +89,7 @@ groups:
         labels:
           severity: warning
         annotations:
-          summary: "radares-anunciados has not synced for {{ $value | humanizeDuration }}"
+          summary: "radares-anunciados-ha has not synced for {{ $value | humanizeDuration }}"
 
       - alert: RadaresSourceDown
         # Overpass answers 504 for an hour now and then; three hours is a real outage.
@@ -139,5 +139,5 @@ no warning without any of this set up. The phones get it after each zone change,
 of skipped streets changes on its own. The same set does not notify again every hour; a restart of the
 container may send it once more. To fix one for good,
 add the missing name to [OpenStreetMap](https://www.openstreetmap.org/) or
-[open an issue](https://github.com/GeiserX/radares-anunciados/issues) with the street and the district.
+[open an issue](https://github.com/GeiserX/radares-anunciados-ha/issues) with the street and the district.
 [How it works](how-it-works.md#from-a-street-name-to-circles) explains how a street is matched.

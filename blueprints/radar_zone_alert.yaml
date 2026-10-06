@@ -1,8 +1,8 @@
 blueprint:
-  name: Radar ahead (radares-anunciados)
+  name: Radar ahead (radares-anunciados-ha)
   description: >-
     Alerts a phone (iPhone or Android) when it enters a radar zone created by
-    radares-anunciados. It watches each selected phone's location tracker, whose
+    radares-anunciados-ha. It watches each selected phone's location tracker, whose
     `in_zones` lists the zones the phone is in, and also listens for the apps'
     own zone events, which can arrive first. A street from a police list, or an
     average-speed section, is several zones with one name, so each phone is
@@ -12,7 +12,7 @@ blueprint:
   homeassistant:
     # the location tracker's `in_zones` attribute
     min_version: 2026.6.0
-  source_url: https://github.com/GeiserX/radares-anunciados/blob/main/blueprints/radar_zone_alert.yaml
+  source_url: https://github.com/GeiserX/radares-anunciados-ha/blob/main/blueprints/radar_zone_alert.yaml
   input:
     phones:
       name: Phones
