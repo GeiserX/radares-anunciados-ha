@@ -13,8 +13,8 @@ The service uses it to create, move and delete its radar zones.
 ```yaml
 # docker-compose.yml
 services:
-  radares-anunciados:
-    image: drumsergio/radares-anunciados:0.2.0
+  radares-anunciados-ha:
+    image: drumsergio/radares-anunciados-ha:0.3.0
     restart: unless-stopped
     environment:
       HA_URL: https://homeassistant.example.org
@@ -37,12 +37,12 @@ INFO zones: 0 kept (0 with a new icon), 89 to create, 0 to delete
 To see what it would do without touching Home Assistant:
 
 ```sh
-docker compose run --rm radares-anunciados sync --dry-run
+docker compose run --rm radares-anunciados-ha sync --dry-run
 ```
 
 ## 3. Import the alert blueprint
 
-[![Import blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FGeiserX%2Fradares-anunciados%2Fblob%2Fmain%2Fblueprints%2Fradar_zone_alert.yaml)
+[![Import blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FGeiserX%2Fradares-anunciados-ha%2Fblob%2Fmain%2Fblueprints%2Fradar_zone_alert.yaml)
 
 Or copy [`blueprints/radar_zone_alert.yaml`](../blueprints/radar_zone_alert.yaml) into Home Assistant
 by hand. Create one automation from it and pick the phones' location trackers under **Phones**. Each
@@ -65,11 +65,15 @@ The earlier blueprint had no **Phones** input; this one requires it. After you r
 blueprint, an automation made from the earlier one stops working: it shows as unavailable, and the log
 says `Failed to generate automation from blueprint: Missing input phones`. Pick its phones to fix it:
 
-1. Re-import the blueprint: **Settings → Automations & scenes → Blueprints**, open the menu of "Radar
-   ahead (radares-anunciados)" and choose **Re-import blueprint**.
+1. Re-import the blueprint: **Settings → Automations & scenes → Blueprints**, open the menu of the "Radar
+   ahead" blueprint and choose **Re-import blueprint**.
 2. Open the automation made from it, pick each phone's location tracker under **Phones**, and save.
 
 Sound, Time sensitive and Critical alert keep their values.
+
+A blueprint imported before 0.3.0 points at the project's old address, which now belongs to the phone
+app, so **Re-import blueprint** fails for it. Use the import button above instead and let it replace
+your copy; later re-imports then work again.
 
 ## 4. Set up each phone
 

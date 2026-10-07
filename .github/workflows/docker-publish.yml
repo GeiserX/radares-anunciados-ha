@@ -6,8 +6,8 @@ on:
       - 'v*.*.*'
 
 env:
-  DOCKER_IMAGE: drumsergio/radares-anunciados
-  GHCR_IMAGE: ghcr.io/geiserx/radares-anunciados
+  DOCKER_IMAGE: drumsergio/radares-anunciados-ha
+  GHCR_IMAGE: ghcr.io/geiserx/radares-anunciados-ha
 
 jobs:
   test:

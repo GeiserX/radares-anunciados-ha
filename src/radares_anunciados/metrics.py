@@ -140,7 +140,7 @@ class State:
             metric(
                 "radares_build_info",
                 "gauge",
-                "Version of radares-anunciados; always 1.",
+                "Version of radares-anunciados-ha; always 1.",
                 [({"version": __version__}, 1)],
             )
             metric(
