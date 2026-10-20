@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.1 (2026-10-21)
+
+- The image no longer trusts certificates issued through the eight eMudhra (emSign) intermediates
+  revoked on 2026-10-18 for a key compromise. It upgrades Debian's ca-certificates to
+  20250419+deb13u1, which distrusts them; the image used to accept a connection to a site
+  served through one of them.
+- Python 3.14.8 base image and dependency updates.
+
 ## 0.3.0 (2026-10-06)
 
 Warns where Barcelona's and Madrid's mobile radars stand, publishes every Spain-only source, and takes

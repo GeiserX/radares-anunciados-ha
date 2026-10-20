@@ -1,5 +1,11 @@
 FROM python:3.14.8-slim-trixie
 
+# The base image ships ca-certificates 20250419, which still trusts the
+# compromised eMudhra intermediates; the Debian update distrusts them.
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends --only-upgrade ca-certificates \
+ && rm -rf /var/lib/apt/lists/*
+
 COPY --from=ghcr.io/astral-sh/uv:0.12.21 /uv /bin/uv
 
 WORKDIR /app
