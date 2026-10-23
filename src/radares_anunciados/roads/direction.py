@@ -185,15 +185,23 @@ def carriageway(net: Network, snap: Snap, p: Point) -> Signal | None:
     return Signal(own, f"{snap.dist_m:.0f} m from its carriageway, {other:.0f} m from the other")
 
 
-def osm_tag(net: Network, snap: Snap, direction: str | None) -> Signal | None:
-    """S3: an OpenStreetMap ``direction`` along the snapped way."""
+def osm_tag(
+    net: Network, snap: Snap, direction: str | None, node: int | None = None
+) -> Signal | None:
+    """S3: an OpenStreetMap ``direction`` along the snapped way. ``forward`` and
+    ``backward`` name the node order of the way the camera node ``node`` belongs
+    to, so they count only when that node is on the snapped way and every drivable
+    way through it runs the same way there."""
     if not direction:
         return None
     text = direction.strip().lower()
-    if text == "forward":
-        return Signal(1, "forward")
-    if text == "backward":
-        return Signal(-1, "backward")
+    if text in ("forward", "backward"):
+        side = 1 if text == "forward" else -1
+        if node is None or node not in net.way_nodes(snap.way):
+            return Signal(None, f"{text}: the camera node is not on the snapped way")
+        if not _one_node_order(net, snap, node):
+            return Signal(None, f"{text}: the ways through the camera node disagree")
+        return Signal(side, text)
     try:
         value = float(text)
     except ValueError:
@@ -204,6 +212,22 @@ def osm_tag(net: Network, snap: Snap, direction: str | None) -> Signal | None:
     if angle_diff(value, along + 180) <= AGREE_DEG:
         return Signal(-1, f"{value:g}")
     return Signal(None, f"{value:g} along neither way of the road")
+
+
+def _one_node_order(net: Network, snap: Snap, node: int) -> bool:
+    """Do all drivable ways through ``node`` run the same way at it (node order
+    within 90 degrees)? A road split in two ways drawn in opposite orders does not."""
+    bearings = []
+    for w in net.ways_near(snap.point, 50):
+        ids = net.way_nodes(w)
+        if node not in ids:
+            continue
+        k = ids.index(node)
+        if len(ids) < 2:
+            continue
+        seg = min(k, len(ids) - 2)
+        bearings.append(segment_bearing(net, w, seg, 1))
+    return all(angle_diff(a, b) <= 90 for a in bearings for b in bearings)
 
 
 @dataclass(frozen=True)

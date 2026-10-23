@@ -60,7 +60,9 @@ The road is found with the routing that `dgt_invive.route` already uses for DGT'
 stretches: the ways of the stretch's road number, in the box of its two ends plus 5 km, each way's end
 joined to every other way within 500 m (at twice the cost, to cross an untagged roundabout), then the
 shortest path. Where `route` joins a published end to a node that lies behind it, the line drops that
-node, so it never starts by driving backwards.
+node, so it never starts by driving backwards. It drops a node only when the node also sits on the
+straight run from the end to the next node (within 10 m, or the end's own distance from the road up to
+40 m): at a hairpin the end lies past the bend's node too, and the bend must stay.
 
 A line is published only when it fits what the publisher says:
 
@@ -109,7 +111,7 @@ Each radar snapped to a road can get up to three signals. Each names one of the 
 |---|---|---|
 | S1 official km | `official_km` | `km_direction` (DGT `directionRelative`, Navarra creciente/decreciente) and `km` |
 | S2 carriageway | `oneway` | the radar stands on a one-way carriageway and the other carriageway of the same road runs the other way within 60 m, at least 5 m further away |
-| S3 OSM tag | `osm_tag` | the OpenStreetMap `direction` as a bearing within 30 degrees of a way along the road, or `forward` / `backward` |
+| S3 OSM tag | `osm_tag` | the OpenStreetMap `direction` as a bearing within 30 degrees of a way along the road, or `forward` / `backward` (only when the camera node is on the snapped way and every drivable way through it is drawn the same way there) |
 
 **S1.** The publisher says the radar watches traffic driving up (`positive`) or down (`negative`) the km
 markers. To turn that into a way along the road, the step walks the radar's road both ways for 25 km
@@ -128,7 +130,9 @@ valid anchors disagree, S1 says nothing.
 
 - any two that oppose: no bearing (the id and the signals are in the audit file);
 - S1 and S2 oppose: the radar watches the other carriageway. S1 wins, the approach goes on the
-  carriageway that runs S1's way, and the confidence is low;
+  carriageway that runs S1's way, and the confidence is low. When no carriageway of the road runs S1's
+  way within 60 m (a wide median), the radar gets no entry and no bearing at all: an approach on the
+  carriageway at hand would point the app at the traffic the radar does not watch;
 - an OSM tag against a one-way road: no bearing;
 - otherwise the strongest signal gives the bearing (S1, then S2, then S3), and
   `direction_confidence` is `high` only when S1 and S2 are both present and agree.

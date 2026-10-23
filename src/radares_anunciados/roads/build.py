@@ -13,7 +13,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 
-from ..geo import bearing_deg, distance_m
+from ..geo import EARTH_M, bearing_deg, distance_m
 from ..sources.dgt_invive import OSM_ATTRIBUTION, route
 from . import pbf
 from .direction import (
@@ -158,7 +158,7 @@ def _approach(net: Network, local: Directed, at: Snap, side: int, end: Point | N
         points[-1] = end
         # the published end may sit beside the road a little behind the last
         # node: no hook back to it
-        while len(points) > 2 and project(end, points[-3], points[-2])[0] < 1:
+        while len(points) > 2 and _behind(end, points[-2], points[-3]):
             del points[-2]
     if length_m(points) < APPROACH_MIN_M:
         return None
@@ -252,11 +252,34 @@ def trim_ends(line: list[Point]) -> list[Point]:
     motorway with nodes 500 m apart the line would start by driving 200 m
     backwards and turn round. A node the end already lies past is dropped."""
     pts = list(line)
-    while len(pts) > 2 and project(pts[0], pts[1], pts[2])[0] > 0:
+    while len(pts) > 2 and _behind(pts[0], pts[1], pts[2]):
         del pts[1]
-    while len(pts) > 2 and project(pts[-1], pts[-2], pts[-3])[0] > 0:
+    while len(pts) > 2 and _behind(pts[-1], pts[-2], pts[-3]):
         del pts[-2]
     return pts
+
+
+def _behind(end: Point, node: Point, nxt: Point) -> bool:
+    """Does ``end`` lie past ``node`` on the way to ``nxt``, with ``node`` on the
+    straight run from ``end`` to ``nxt``? The second test keeps a sharp bend: at a
+    hairpin the end projects past the bend's node too, but that node is far off the
+    end-to-next chord and must stay."""
+    t, _, beside = project(end, node, nxt)
+    if t <= 0:
+        return False
+    return _off_line(node, end, nxt) <= max(LINE_TOLERANCE_M, min(beside, SNAP_M))
+
+
+def _off_line(p: Point, a: Point, b: Point) -> float:
+    """Metres from ``p`` to the straight line through ``a`` and ``b``."""
+    kx = math.cos(math.radians(p[0])) * math.pi / 180 * EARTH_M
+    ky = math.pi / 180 * EARTH_M
+    ax, ay = (a[1] - p[1]) * kx, (a[0] - p[0]) * ky
+    bx, by = (b[1] - p[1]) * kx, (b[0] - p[0]) * ky
+    seg = math.hypot(bx - ax, by - ay)
+    if seg == 0:
+        return math.hypot(ax, ay)
+    return abs(ax * by - ay * bx) / seg
 
 
 def keep_cells(features: list[dict]) -> set[tuple[int, int]]:
@@ -388,7 +411,8 @@ def compute(feed: dict, net: Network, osm_date: str | None, now: float) -> Resul
         s1 = official(net, at, _num(p.get("km")), p.get("km_direction"), refs, anchors, own_id=fid)
         s2 = carriageway(net, at, point)
         direction = p.get("direction")
-        s3 = osm_tag(net, at, direction) if isinstance(direction, str) and not both else None
+        node = int(fid[4:]) if fid.startswith("osm-") and fid[4:].isdigit() else None
+        s3 = osm_tag(net, at, direction, node) if isinstance(direction, str) and not both else None
         row.s1, row.s2, row.s3 = _signal_text(s1), _signal_text(s2), _signal_text(s3)
         if s1 is not None:
             row.anchor, row.walked_m = s1.anchor or "", s1.walked_m
@@ -403,22 +427,24 @@ def compute(feed: dict, net: Network, osm_date: str | None, now: float) -> Resul
                 else (at, decision.side)
             )
             if found is None:
+                # The official direction names the other carriageway, beyond a wide
+                # median. An approach on the one at hand would point the app at the
+                # traffic the radar does not watch: publish nothing, today's rule runs.
                 row.decision = "no carriageway runs the official direction within 60 m"
-                decision = Decision(None)
-            else:
-                targets.append(found)
-                where, side = found
-                bearing = segment_bearing(net, where.way, where.seg, side)
-                added[fid] = {
-                    "bearing": bearing,
-                    "direction_semantics": "travel",
-                    "direction_confidence": decision.confidence,
-                    "bearing_source": decision.source,
-                }
-                credited.add(fid)
-                row.bearing, row.confidence = bearing, decision.confidence or ""
-                counts["points_with_bearing"] += inside
-                counts["points_high_confidence"] += inside and decision.confidence == "high"
+                continue
+            targets.append(found)
+            where, side = found
+            bearing = segment_bearing(net, where.way, where.seg, side)
+            added[fid] = {
+                "bearing": bearing,
+                "direction_semantics": "travel",
+                "direction_confidence": decision.confidence,
+                "bearing_source": decision.source,
+            }
+            credited.add(fid)
+            row.bearing, row.confidence = bearing, decision.confidence or ""
+            counts["points_with_bearing"] += inside
+            counts["points_high_confidence"] += inside and decision.confidence == "high"
         if decision.side is None:
             if both:
                 for side in (1, -1):

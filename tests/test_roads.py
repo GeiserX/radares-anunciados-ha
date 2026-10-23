@@ -195,6 +195,17 @@ def test_the_line_never_starts_by_driving_backwards():
     assert build.trim_ends(line) == [xy(0, 0), xy(0, 400), xy(0, 800), xy(0, 1000)]
 
 
+@pytest.mark.parametrize("at_start", [True, False])
+def test_the_trim_keeps_a_hairpin_right_after_the_first_node(at_start):
+    """A switchback whose road turns back on itself one vertex after the end's node:
+    the end projects past each bend's node, but the bends lie far off the straight
+    run, so nothing is eaten."""
+    zigzag = [xy(0, 0), xy(300, 150), xy(0, 300), xy(300, 450), xy(0, 600), xy(300, 750)]
+    line = zigzag if at_start else list(reversed(zigzag))
+    assert build.trim_ends(line) == line
+    assert abs(length_m(build.trim_ends(line)) - length_m(line)) < 1
+
+
 def feature(fid, geometry, **props):
     return {"type": "Feature", "id": fid, "geometry": geometry, "properties": props}
 
@@ -362,3 +373,36 @@ def test_enrich_adds_properties_at_the_end_and_credits_osm_once():
     assert b2["properties"] == before["features"][1]["properties"]
     assert c == before["features"][2]
     assert [f["geometry"] for f in out["features"]] == [f["geometry"] for f in before["features"]]
+
+
+def dual_a2(other_x):
+    """The A-2 as two one-way carriageways: northbound at x = 0, southbound at
+    ``other_x``; km grow northward."""
+    b = Builder()
+    b.way([(0, -3000), (0, 8000)], ref="A-2", oneway=1, step=200)
+    b.way([(other_x, 8000), (other_x, -3000)], ref="A-2", oneway=1, step=200)
+    return b
+
+
+def official_south(fid="p"):
+    return [
+        point(fid, -10, 2000, source="dgt", road_ref="A-2", km=12.0, km_direction="negative"),
+        point("anchor", 0, 7000, source="dgt", road_ref="A-2", km=17.0, km_direction="positive"),
+        # radars that do get approaches, so the coverage gate holds
+        *(point(f"f{y}", 0, y, source="osm") for y in (3000, 4000, 5000)),
+    ]
+
+
+def test_an_official_direction_beyond_a_wide_median_publishes_nothing():
+    """S1 says the radar watches southbound traffic, but the southbound carriageway
+    is 80 m away: an approach on the northbound one would voice the traffic the
+    radar does not watch and silence the traffic it does."""
+    result = compute(official_south(), dual_a2(-90).net)
+    assert "p" not in json.loads(result.roads["text"])["features"]
+    assert "p" not in result.features
+    (row,) = [r for r in result.rows if r.id == "p"]
+    assert row.decision == "no carriageway runs the official direction within 60 m"
+    # positive control: the southbound carriageway 30 m away carries the approach
+    near = compute(official_south(), dual_a2(-40).net)
+    (only,) = json.loads(near.roads["text"])["features"]["p"]["approaches"]
+    assert only["bearing"] == 180 and near.features["p"]["bearing"] == 180

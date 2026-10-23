@@ -124,14 +124,46 @@ def test_s2_needs_the_other_carriageway_running_the_other_way():
 # --- S3, the OSM tag --------------------------------------------------------------------------
 
 
+def camera_node(net, x, y):
+    """The OSM id of the vertex at (x, y)."""
+    return net.nodes[
+        [
+            i
+            for i in range(len(net.nodes))
+            if net.coords[2 * i : 2 * i + 2].tolist() == list(xy(x, y))
+        ][0]
+    ]
+
+
 @pytest.mark.parametrize(
     "tag, side",
     [("0", 1), ("25", 1), ("180", -1), ("200", -1), ("forward", 1), ("backward", -1), ("90", None)],
 )
 def test_s3_reads_the_tag_against_the_ways_node_order(tag, side):
     net = straight_a2()  # node order runs north
-    found = d.osm_tag(net, snap(net, xy(0, 0)), tag)
+    found = d.osm_tag(net, snap(net, xy(0, 0)), tag, camera_node(net, 0, 0))
     assert found.side == side
+
+
+@pytest.mark.parametrize("tag", ["forward", "backward"])
+def test_s3_forward_needs_the_camera_node_on_the_snapped_way(tag):
+    net = straight_a2()
+    assert d.osm_tag(net, snap(net, xy(0, 0)), tag).side is None  # no node id
+    assert d.osm_tag(net, snap(net, xy(0, 0)), tag, 999_999).side is None  # not on the way
+
+
+@pytest.mark.parametrize("tag", ["forward", "backward"])
+def test_s3_forward_is_ambiguous_where_two_ways_of_opposite_order_meet(tag):
+    """The road is split at the camera node: the south half drawn northward, the
+    north half drawn southward. ``forward`` means north on one and south on the
+    other, so it says nothing."""
+    net = network(([(0, -5000), (0, 0)], "A-2", 0), ([(0, 5000), (0, 0)], "A-2", 0))
+    at = snap(net, xy(0, 0))
+    assert d.osm_tag(net, at, tag, camera_node(net, 0, 0)).side is None
+    # positive control: both halves drawn northward agree
+    same = network(([(0, -5000), (0, 0)], "A-2", 0), ([(0, 0), (0, 5000)], "A-2", 0))
+    found = d.osm_tag(same, snap(same, xy(0, 0)), tag, camera_node(same, 0, 0))
+    assert found.side == (1 if tag == "forward" else -1)
 
 
 def test_s3_ignores_place_names():
