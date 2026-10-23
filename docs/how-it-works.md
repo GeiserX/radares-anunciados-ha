@@ -243,7 +243,7 @@ and publishes `feed.geojson`, `status.json`, the map in [`site/`](../site/) and
 | `radars`, `stretches`, `reported` | what the source gave (or its last good result); `reported` counts the unconfirmed notes, which are not counted as radars |
 | `in_feed` | its features left in the feed after duplicates are dropped |
 | `data_time` | when the data in use was fetched, UTC; `null` for a missing source |
-| `updated` | the date the source gives for its last update (for DGT and SCT, the `Last-Modified` the file in use came with, kept with the cached copy; Madrid and Salamanca catalogue dates); `null` when it gives none |
+| `updated` | the date the source gives for its last update (for DGT, the file's own `<publicationTime>`, the `Last-Modified` only when it has none; for SCT, the `Last-Modified` the file in use came with, kept with the cached copy; Madrid and Salamanca catalogue dates); `null` when it gives none |
 | `error` | why this run's fetch failed |
 | `attribution`, `licence`, `spanish_ip` | the source's terms, and whether it answers only Spanish addresses |
 
