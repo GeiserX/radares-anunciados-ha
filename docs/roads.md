@@ -149,8 +149,9 @@ the extract of 2026-10-20:
   dropped.
 - 1,429 radars got a bearing, 227 of them high.
 - Checked against an independent signal, the town DGT writes in the radar's name ("sentido ZARAGOZA"):
-  for the 47 high radars whose town is a known city, 46 bearings point toward it (within 90 degrees of
-  the straight line to the town).
+  for the 55 high radars whose town is a known city, 54 bearings point toward it (within 90 degrees of
+  the straight line to the town). The other is on the Z-40 ring road round Zaragoza, heading north
+  "sentido BARCELONA", 94 degrees off the straight line to Barcelona.
 
 ## Gates on a bad build
 
@@ -203,8 +204,8 @@ The pull request job runs the same step against `tests/fixtures/roads/clip.osm.p
 of the drivable roads around Murcia (box -1.5, 37.75 to -0.9, 38.2) with its header box set, and fails
 when the step does. It never downloads from Geofabrik.
 
-Cost on a Mac mini (M-series, NVMe), the whole feed: about 4 minutes to read the extract and 1.5 to 2.5
-minutes for the roads, 3.1 GB peak memory. The runner's disk is slower; the job allows 60 minutes.
+Cost on a Mac mini (M-series, NVMe), the whole feed: 5 minutes in all (about 2.5 to read the extract,
+2.5 for the roads), 3.5 GB peak memory. The runner's disk is slower; the job allows 60 minutes.
 
 ### Running it locally
 
