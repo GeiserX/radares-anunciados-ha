@@ -199,8 +199,15 @@ def choose(
     if anchors:
         near = [(s, _gap(c["lines"], anchors), c) for s, c in named]
         near = [n for n in near if n[1] <= NEAR_M]
-        # the closest name first, then the closest street
-        return min(near, key=lambda n: (-n[0], n[1]))[2] if near else None
+        if not near:
+            return None
+        # the closest name first, then the closest street, with its other pieces:
+        # CartoCiudad keeps one street as several records ("CALLE MAYOR, El Raal")
+        best = max(n[0] for n in near)
+        top = [n for n in near if n[0] == best]
+        first = min(top, key=lambda n: n[1])[2]
+        pieces = [c for _, _, c in top if _together([first["lines"], c["lines"]])]
+        return {"name": first["name"], "lines": [line for c in pieces for line in c["lines"]]}
     if district:
         wanted = place_words(district)
         named = [(s, c) for s, c in named if wanted <= set(fold(c.get("where", "")).split())]
@@ -258,7 +265,14 @@ def _cartociudad(geocoder: Geocoder, street: str, district: str | None) -> list[
     found: dict[str, dict] = {}
     for params in asks:
         for c in geocoder._get("cartociudad", f"{CARTOCIUDAD}/candidates", params) or []:
-            if c.get("muniCode") == town.ine and c.get("type") in ("callejero", "carretera"):
+            # A street's id starts with the INE code of its municipality; CartoCiudad
+            # has listed an Alcantarilla street (30005...) under Murcia's muniCode.
+            kind = c.get("type")
+            if (
+                c.get("muniCode") == town.ine
+                and kind in ("callejero", "carretera")
+                and (kind != "callejero" or str(c.get("id", "")).startswith(town.ine))
+            ):
                 found.setdefault(str(c["id"]), c)
     wanted = place_words(district) if district else frozenset()
 

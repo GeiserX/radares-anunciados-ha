@@ -209,8 +209,19 @@ def test_a_district_not_on_the_map_must_be_in_the_address(answers):
     g = Geocoder(murcia.TOWN)
     found = g.street("Calle Mayor", "El Raal", [])
     assert found and found.method == "cartociudad"
+    assert len(found.lines) == 16  # both of CartoCiudad's records of the street
     assert all(distance_m(line[0], EL_RAAL) < 3000 for line in found.lines)
     assert g.street("Calle Mayor", "Nowhere", []) is None
+
+
+def test_every_piece_of_a_street_near_its_district_is_kept(answers):
+    found = Geocoder(murcia.TOWN).street("Calle Mayor", "El Raal", [EL_RAAL])
+    assert found and len(found.lines) == 16  # two records, one street
+
+
+def test_a_street_whose_id_names_another_municipality_is_never_taken(answers):
+    # CartoCiudad lists "CALLE MAYOR, Alcantarilla" under Murcia, id 30005...
+    assert Geocoder(murcia.TOWN).street("Calle Mayor", "Alcantarilla", []) is None
 
 
 def test_namesakes_and_no_district_give_no_answer(answers):
@@ -374,6 +385,7 @@ def test_leon_asks_the_geocoder_for_a_street_not_on_its_map(leon_map):
     radars, status = leon.to_radars([schedule], leon_map, lambda limit: 150, week, geo)
     assert radars and not status.skipped
     assert set(status.placed.values()) == {"cartociudad"}
+    assert {r.name for r in radars} == {"Radar anunciado Calle Recién Abierta"}
     assert all("CartoCiudad, CC BY 4.0" in r.attribution for r in radars)
     # without a geocoder it stays skipped, as before
     radars, status = leon.to_radars([schedule], leon_map, lambda limit: 150, week)

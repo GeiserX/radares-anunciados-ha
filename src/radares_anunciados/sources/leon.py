@@ -441,7 +441,8 @@ class StreetMap:
                         {
                             "type": "way",
                             "id": -n,
-                            "tags": {"name": found.name or item.street},
+                            # the list's spelling: CartoCiudad writes "CALLE X"
+                            "tags": {"name": item.street},
                             "geometry": [{"lat": a, "lon": b} for a, b in line],
                         }
                         for n, line in enumerate(found.lines, 1)
