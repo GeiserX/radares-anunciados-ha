@@ -30,7 +30,7 @@ contributors" in its `attribution` field.
 
 The feed's `bearing`, `direction_semantics`, `direction_confidence` and `bearing_source` properties are
 worked out through OpenStreetMap geometry. A feature that carries them, or has an entry in
-`roads.json`, gets `; road: © OpenStreetMap contributors (ODbL 1.0)` added to its `attribution`,
+`roads.json`, gets `; carretera: © OpenStreetMap contributors (ODbL 1.0)` added to its `attribution`,
 unless it already credits OpenStreetMap.
 
 ## Sources and their attributions

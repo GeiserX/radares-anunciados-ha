@@ -50,7 +50,7 @@ MAX_BYTES = 2_000_000
 MAX_GZIP_BYTES = 1_200_000
 MIN_FOLLOWED = 0.60  # of the stretches with a road number inside the extract
 MIN_APPROACHED = 0.70  # of the point radars inside the extract
-CREDIT = f"; road: {OSM_ATTRIBUTION}"
+CREDIT = f"; carretera: {OSM_ATTRIBUTION}"
 
 
 class RoadsError(RuntimeError):

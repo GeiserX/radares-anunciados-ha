@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- The OpenStreetMap credit added to an attribution is written in Spanish, like the rest of the
+  string: `; carretera: © OpenStreetMap contributors (ODbL 1.0)` for a road geometry or bearing and
+  `; límite de velocidad: © OpenStreetMap contributors (ODbL 1.0)` for a speed limit, where they read
+  `road:` and `speed limit` before. The licence credit itself is unchanged.
 - A street of a police list (Murcia, León, Donostia) that OpenStreetMap's name search missed is now
   looked for in more ways before it is skipped: the name written another way ("Molino Batán" for
   "Molino del Batán", Basque, Catalan and Galician street types, roman numerals, a trailing "Avda."),

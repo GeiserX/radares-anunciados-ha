@@ -50,7 +50,7 @@ log = logging.getLogger(__name__)
 OVERPASS_URL = "https://overpass-api.de/api/interpreter"
 # Added to the attribution of a radar whose limit came from here: the feed then
 # carries OpenStreetMap data even when no OSM camera is in it.
-ATTRIBUTION = "speed limit © OpenStreetMap contributors (ODbL 1.0)"
+ATTRIBUTION = "límite de velocidad: © OpenStreetMap contributors (ODbL 1.0)"
 AROUND_M = 30  # how far from a radar its road may be; a dual carriageway's two halves fit
 TIE_M = 5  # this close, the radar is on the way (and two pieces of one road meet)
 BATCH = 250  # radars per Overpass query

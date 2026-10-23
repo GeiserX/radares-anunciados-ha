@@ -18,7 +18,7 @@ ROOT = Path(__file__).parent.parent
 FIXTURES = ROOT / "tests" / "fixtures" / "roads"
 CLIP = FIXTURES / "clip.osm.pbf"
 NEW_KEYS = {"bearing", "direction_semantics", "direction_confidence", "bearing_source"}
-CREDIT = "; road: © OpenStreetMap contributors (ODbL 1.0)"
+CREDIT = "; carretera: © OpenStreetMap contributors (ODbL 1.0)"
 
 
 @pytest.fixture

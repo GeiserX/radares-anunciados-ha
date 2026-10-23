@@ -24,7 +24,7 @@
     "direction": null,
     "province": "30",
     "url": "https://infocar.dgt.es/datex2/dgt/PredefinedLocationsPublication/radares/content.xml",
-    "attribution": "Dirección General de Tráfico (CC BY 4.0), actualizado 2025-12-18; speed limit © OpenStreetMap contributors (ODbL 1.0)",
+    "attribution": "Dirección General de Tráfico (CC BY 4.0), actualizado 2025-12-18; límite de velocidad: © OpenStreetMap contributors (ODbL 1.0)",
     "road_ref": "RM-19",
     "km": 17.799,
     "km_direction": "positive"
@@ -53,7 +53,7 @@
     "direction": null,
     "province": "03",
     "url": "https://infocar.dgt.es/datex2/dgt/PredefinedLocationsPublication/radares/content.xml",
-    "attribution": "Dirección General de Tráfico (CC BY 4.0), actualizado 2025-12-18; speed limit © OpenStreetMap contributors (ODbL 1.0)",
+    "attribution": "Dirección General de Tráfico (CC BY 4.0), actualizado 2025-12-18; límite de velocidad: © OpenStreetMap contributors (ODbL 1.0)",
     "road_ref": "N-340",
     "km": 694.795,
     "km_direction": "negative"
@@ -82,7 +82,7 @@
     "direction": null,
     "province": "03",
     "url": "https://infocar.dgt.es/datex2/dgt/PredefinedLocationsPublication/radares/content.xml",
-    "attribution": "Dirección General de Tráfico (CC BY 4.0), actualizado 2025-12-18; speed limit © OpenStreetMap contributors (ODbL 1.0)",
+    "attribution": "Dirección General de Tráfico (CC BY 4.0), actualizado 2025-12-18; límite de velocidad: © OpenStreetMap contributors (ODbL 1.0)",
     "road_ref": "N-340",
     "km": 687.596,
     "km_direction": "positive"
@@ -111,7 +111,7 @@
     "direction": null,
     "province": "30",
     "url": "https://infocar.dgt.es/datex2/dgt/PredefinedLocationsPublication/radares/content.xml",
-    "attribution": "Dirección General de Tráfico (CC BY 4.0), actualizado 2025-12-18; speed limit © OpenStreetMap contributors (ODbL 1.0)",
+    "attribution": "Dirección General de Tráfico (CC BY 4.0), actualizado 2025-12-18; límite de velocidad: © OpenStreetMap contributors (ODbL 1.0)",
     "road_ref": "A-30",
     "km": 112.936,
     "km_direction": "negative"
@@ -140,7 +140,7 @@
     "direction": null,
     "province": "30",
     "url": "https://infocar.dgt.es/datex2/dgt/PredefinedLocationsPublication/radares/content.xml",
-    "attribution": "Dirección General de Tráfico (CC BY 4.0), actualizado 2025-12-18; speed limit © OpenStreetMap contributors (ODbL 1.0)",
+    "attribution": "Dirección General de Tráfico (CC BY 4.0), actualizado 2025-12-18; límite de velocidad: © OpenStreetMap contributors (ODbL 1.0)",
     "road_ref": "A-30",
     "km": 136.028,
     "km_direction": "negative"
@@ -169,7 +169,7 @@
     "direction": null,
     "province": "30",
     "url": "https://infocar.dgt.es/datex2/dgt/PredefinedLocationsPublication/radares/content.xml",
-    "attribution": "Dirección General de Tráfico (CC BY 4.0), actualizado 2025-12-18; speed limit © OpenStreetMap contributors (ODbL 1.0)",
+    "attribution": "Dirección General de Tráfico (CC BY 4.0), actualizado 2025-12-18; límite de velocidad: © OpenStreetMap contributors (ODbL 1.0)",
     "road_ref": "A-7",
     "km": 562.786,
     "km_direction": "positive"
@@ -227,7 +227,7 @@
     "direction": null,
     "province": "30",
     "url": "https://infocar.dgt.es/datex2/dgt/PredefinedLocationsPublication/radares/content.xml",
-    "attribution": "Dirección General de Tráfico (CC BY 4.0), actualizado 2025-12-18; speed limit © OpenStreetMap contributors (ODbL 1.0)",
+    "attribution": "Dirección General de Tráfico (CC BY 4.0), actualizado 2025-12-18; límite de velocidad: © OpenStreetMap contributors (ODbL 1.0)",
     "road_ref": "MU-30",
     "km": 9.06,
     "km_direction": "positive"
@@ -256,7 +256,7 @@
     "direction": null,
     "province": "30",
     "url": "https://infocar.dgt.es/datex2/dgt/PredefinedLocationsPublication/radares/content.xml",
-    "attribution": "Dirección General de Tráfico (CC BY 4.0), actualizado 2025-12-18; speed limit © OpenStreetMap contributors (ODbL 1.0)",
+    "attribution": "Dirección General de Tráfico (CC BY 4.0), actualizado 2025-12-18; límite de velocidad: © OpenStreetMap contributors (ODbL 1.0)",
     "road_ref": "A-30",
     "km": 122.896,
     "km_direction": "positive"
@@ -285,7 +285,7 @@
     "direction": null,
     "province": "30",
     "url": "https://infocar.dgt.es/datex2/dgt/PredefinedLocationsPublication/radares/content.xml",
-    "attribution": "Dirección General de Tráfico (CC BY 4.0), actualizado 2025-12-18; speed limit © OpenStreetMap contributors (ODbL 1.0)"
+    "attribution": "Dirección General de Tráfico (CC BY 4.0), actualizado 2025-12-18; límite de velocidad: © OpenStreetMap contributors (ODbL 1.0)"
    }
   },
   {
@@ -311,7 +311,7 @@
     "direction": null,
     "province": "30",
     "url": "https://infocar.dgt.es/datex2/dgt/PredefinedLocationsPublication/radares/content.xml",
-    "attribution": "Dirección General de Tráfico (CC BY 4.0), actualizado 2025-12-18; speed limit © OpenStreetMap contributors (ODbL 1.0)"
+    "attribution": "Dirección General de Tráfico (CC BY 4.0), actualizado 2025-12-18; límite de velocidad: © OpenStreetMap contributors (ODbL 1.0)"
    }
   },
   {
