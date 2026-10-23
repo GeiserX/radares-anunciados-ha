@@ -7,17 +7,34 @@ Country and Catalonia run their own.
 
 from __future__ import annotations
 
+import logging
+import re
 import xml.etree.ElementTree as ET
+from datetime import datetime
 
 from .. import net
 from ..model import Radar, SourceResult, Stretch, dated
 from .base import Context, Source
 
-URL = "https://infocar.dgt.es/datex2/dgt/PredefinedLocationsPublication/radares/content.xml"
+# The same file on two hosts, read in this order. infocar answered HTTP 502 from
+# 2026-10-21 while NAP served the same 2,051,128 bytes. NAP sends no
+# Last-Modified, so the file's own <publicationTime> dates it (``published``).
+URLS = (
+    "https://nap.dgt.es/datex2/dgt/PredefinedLocationsPublication/radares/content.xml",
+    "https://infocar.dgt.es/datex2/dgt/PredefinedLocationsPublication/radares/content.xml",
+)
+URL = URLS[0]  # the `url` of every record: the host read first
 ATTRIBUTION = "Dirección General de Tráfico (CC BY 4.0)"
 
 _D = "{http://datex2.eu/schema/1_0/1_0}"
 _XSI_TYPE = "{http://www.w3.org/2001/XMLSchema-instance}type"
+# "positive": the radar watches traffic going up the km markers; "negative": down.
+KM_DIRECTIONS = frozenset({"positive", "negative", "both"})
+# <publicationTime> sits in the file's first lines; read with a regex on the head
+# so dating a 2 MB file costs no second parse.
+_PUBLICATION_TIME = re.compile(rb"<(?:\w+:)?publicationTime>\s*([^<\s]+)\s*<")
+
+log = logging.getLogger(__name__)
 
 
 def _text(el: ET.Element, path: str) -> str | None:
@@ -82,7 +99,9 @@ def parse_all(
             if kind == "Point":
                 point = inner.find(f"{_D}tpegpointLocation/{_D}point")
                 lat, lon = _coords(point)
-                label = _label(inner.find(f"{_D}referencePoint"))
+                ref = inner.find(f"{_D}referencePoint")
+                label = _label(ref)
+                relative = _text(ref, f".//{_D}directionRelative") if ref is not None else None
                 radars.append(
                     Radar(
                         id=f"dgt-{source_id}",
@@ -96,6 +115,9 @@ def parse_all(
                         attribution=ATTRIBUTION,
                         direction=direction,
                         province=province,
+                        road_ref=_text(ref, f"{_D}roadNumber") if ref is not None else None,
+                        km=_km(ref),
+                        km_direction=relative if relative in KM_DIRECTIONS else None,
                     )
                 )
             elif kind == "Linear":
@@ -146,11 +168,47 @@ def parse_all(
     return SourceResult(radars=radars, stretches=stretches)
 
 
+def publication_time(xml: bytes) -> datetime | None:
+    """The file's <publicationTime> ("2025-12-18T09:56:52.406+01:00"), or None."""
+    m = _PUBLICATION_TIME.search(xml[:4096])
+    if not m:
+        return None
+    try:
+        return datetime.fromisoformat(m.group(1).decode("ascii"))
+    except ValueError:
+        return None
+
+
+def get(max_age_s: int = 86_400) -> tuple[bytes, str | None]:
+    """The file and the Last-Modified it came with, from the first host in ``URLS``
+    that answers (through the shared cache). Raises only when every host fails."""
+    errors = []
+    for url in URLS:
+        try:
+            return net.cached_get_dated(url, max_age_s=max_age_s)
+        except Exception as exc:
+            log.warning("dgt: %s failed (%s); trying the next host", url, exc)
+            errors.append(f"{url}: {exc}")
+    raise OSError("dgt: no host answered: " + "; ".join(errors))
+
+
+def published_day(xml: bytes, modified: str | None) -> str | None:
+    """The day the file says it was published, else the day of ``modified`` (the
+    Last-Modified it came with), else None."""
+    when = publication_time(xml)
+    return when.date().isoformat() if when else net.last_modified_day(modified)
+
+
+def download(max_age_s: int = 86_400) -> tuple[bytes, str | None]:
+    """(the file, the day it was published). The day comes from the bytes in use,
+    so a cached copy never takes the date of a newer file."""
+    xml, modified = get(max_age_s)
+    return xml, published_day(xml, modified)
+
+
 def fetch(ctx: Context) -> SourceResult:
-    """Dated with the Last-Modified the file came with, kept beside the cached copy:
-    the date describes the bytes in use, never a newer file."""
-    xml, modified = net.cached_get_dated(URL, max_age_s=ctx.max_age_s)
-    return dated(parse_all(xml, ctx.provinces), net.last_modified_day(modified))
+    xml, day = download(ctx.max_age_s)
+    return dated(parse_all(xml, ctx.provinces), day)
 
 
 SOURCE = Source(

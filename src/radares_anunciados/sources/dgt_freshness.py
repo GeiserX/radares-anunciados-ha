@@ -1,10 +1,13 @@
 """How old the DGT fixed-radar file is.
 
-NAP says the file is updated hourly, but on 2026-10-01 its ``Last-Modified`` was
+NAP says the file is updated hourly, but on 2026-10-01 it was still the file of
 18 Dec 2025, while DGT's own PDF of 3 Aug 2026 lists more fixed radars. The data
-in use can only be as fresh as the file, so each DGT fetch also asks for the
-file's ``Last-Modified`` (a HEAD request) and logs its age, with a warning once it
-is older than ``STALE_AFTER_S``. ``age_s`` is the value for ``/metrics``.
+in use can only be as fresh as the file, so each DGT fetch also reads the date of
+the file it downloads (``dgt.download``, the same cached copy the fetch then
+parses) and logs its age, with a warning once it is older than ``STALE_AFTER_S``.
+The date is the file's own <publicationTime>; the Last-Modified header only when
+the file has none (NAP sends no such header). ``age_s`` is the value for
+``/metrics``.
 
 The PDF is not read: it has no coordinates and no open licence.
 """
@@ -14,12 +17,10 @@ from __future__ import annotations
 import logging
 import threading
 import time
-import urllib.request
 from collections.abc import Callable
 from dataclasses import replace
 from email.utils import parsedate_to_datetime
 
-from .. import net
 from ..model import SourceResult
 from . import dgt
 from .base import Context, Source
@@ -29,14 +30,7 @@ log = logging.getLogger(__name__)
 STALE_AFTER_S = 30 * 86_400  # a file NAP calls hourly, unchanged for a month
 
 _lock = threading.Lock()
-_last_modified: float | None = None  # the file's Last-Modified, epoch seconds
-
-
-def head(url: str, timeout: int = 30) -> dict[str, str]:
-    """The response headers of a HEAD request, names in lower case."""
-    request = urllib.request.Request(url, method="HEAD", headers={"User-Agent": net.USER_AGENT})
-    with urllib.request.urlopen(request, timeout=timeout) as response:
-        return {k.lower(): v for k, v in response.headers.items()}
+_last_modified: float | None = None  # when the file was published, epoch seconds
 
 
 def parse_last_modified(value: str | None) -> float | None:
@@ -49,24 +43,36 @@ def parse_last_modified(value: str | None) -> float | None:
         return None
 
 
+def published(xml: bytes, modified: str | None) -> float | None:
+    """Epoch seconds of the file's <publicationTime>, else of ``modified`` (its
+    Last-Modified header), else None."""
+    when = dgt.publication_time(xml)
+    if when is not None and when.tzinfo is not None:
+        return when.timestamp()
+    return parse_last_modified(modified)
+
+
 def check(
-    url: str = dgt.URL,
     now: float | None = None,
-    get_headers: Callable[[str], dict[str, str]] | None = None,
+    get: Callable[[], tuple[bytes, str | None]] | None = None,
 ) -> float | None:
-    """Ask for the file's Last-Modified, remember it and log its age. Returns the
-    age in seconds. Never raises: a failed check, or an answer without the
-    header, keeps the last known date (None before any)."""
+    """Read when the DGT file was published, remember it and log its age. Returns
+    the age in seconds. ``get`` returns (file, Last-Modified), ``dgt.get`` by
+    default. Never raises: a failed download, or a file with no date, keeps the
+    last known date (None before any)."""
     global _last_modified
     now = time.time() if now is None else now
     try:
-        headers = (get_headers or head)(url)
-        modified = parse_last_modified(headers.get("last-modified"))
+        xml, header = (get or dgt.get)()
     except Exception as exc:
-        log.warning("could not read Last-Modified of %s: %s", url, exc)
+        log.warning("could not read the DGT fixed-radar file to date it: %s", exc)
         return age_s(now)
+    modified = published(xml, header)
     if modified is None:
-        log.warning("%s sent no Last-Modified; its age is unknown", url)
+        log.warning(
+            "the DGT fixed-radar file has no publicationTime and no Last-Modified;"
+            " its age is unknown"
+        )
         return age_s(now)
     with _lock:
         _last_modified = modified
@@ -96,10 +102,10 @@ def age_s(now: float | None = None) -> float | None:
 
 def watch(source: Source) -> Source:
     """``source`` with a freshness check before each fetch. The check never
-    fails the fetch."""
+    fails the fetch, and the fetch then reads the copy it cached."""
 
     def fetch(ctx: Context) -> SourceResult:
-        check()
+        check(get=lambda: dgt.get(ctx.max_age_s))
         return source.fetch(ctx)
 
     return replace(source, fetch=fetch)

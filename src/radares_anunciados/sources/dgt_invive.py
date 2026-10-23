@@ -132,7 +132,10 @@ def _span(road: str, km_from: float | None, km_to: float | None) -> str:
 
 def parse(xml: bytes, provinces: Iterable[str] | None = None) -> list[Stretch]:
     """Every stretch in ``provinces`` (INE codes; None: all), as a straight line.
-    A stretch whose province name is unknown is skipped and logged, never guessed."""
+    A stretch whose province name is unknown is skipped and logged, never guessed.
+    One whose two published points do not fit its km range (``plausible`` for a
+    straight line: one place, or far apart for a short range) is dropped and
+    logged: no road can join them, so the feed would draw a wrong corridor."""
     wanted = frozenset(provinces) if provinces is not None else None
     root = ET.fromstring(xml)
     stretches: list[Stretch] = []
@@ -157,22 +160,32 @@ def parse(xml: bytes, provinces: Iterable[str] | None = None) -> list[Stretch]:
         if wanted is not None and province not in wanted:
             continue
         km_from, km_to = _km(primary), _km(second)
-        stretches.append(
-            Stretch(
-                id=f"{KEY}-{source_id}",
-                source=KEY,
-                name=f"Tramo de radar móvil {_span(road, km_from, km_to)}",
-                road=road,
-                start=start,
-                end=end,
-                km_from=km_from,
-                km_to=km_to,
-                direction=_text(primary, f"{_D}directionRelative"),  # "both"
-                province=province,
-                url=URL,
-                attribution=ATTRIBUTION,
-            )
+        stretch = Stretch(
+            id=f"{KEY}-{source_id}",
+            source=KEY,
+            name=f"Tramo de radar móvil {_span(road, km_from, km_to)}",
+            road=road,
+            start=start,
+            end=end,
+            km_from=km_from,
+            km_to=km_to,
+            direction=_text(primary, f"{_D}directionRelative"),  # "both"
+            province=province,
+            url=URL,
+            attribution=ATTRIBUTION,
         )
+        # Two ends at one place, or far apart for a short km range, are no
+        # corridor: the same rule ``follow`` applies to a straight line.
+        if not plausible([start, end], stretch, followed=False):
+            log.warning(
+                "%s %s: %s, points %.0f m apart, do not fit the published km; dropped",
+                KEY,
+                source_id,
+                _span(road, km_from, km_to),
+                distance_m(start, end),
+            )
+            continue
+        stretches.append(stretch)
     return stretches
 
 

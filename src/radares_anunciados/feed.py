@@ -173,6 +173,19 @@ def _common(properties: dict, item: Radar | Stretch) -> dict:
     }
 
 
+def dumps(obj: object) -> str:
+    """JSON with no whitespace between tokens: the feed is downloaded on phones,
+    often over a mobile connection. Every consumer parses it; none reads its layout."""
+    return json.dumps(obj, ensure_ascii=False, separators=(",", ":"))
+
+
+def _optional(r: Radar) -> dict:
+    """The publisher's road, km and km direction, each only when known: a key that
+    is absent costs nothing, and a radar without them looks as it did before."""
+    found = {"road_ref": r.road_ref, "km": r.km, "km_direction": r.km_direction}
+    return {k: v for k, v in found.items() if v is not None}
+
+
 def to_geojson(radars: list[Radar], stretches: list[Stretch] | None = None) -> str:
     features = [
         {
@@ -191,7 +204,8 @@ def to_geojson(radars: list[Radar], stretches: list[Stretch] | None = None) -> s
                     "reported": r.reported.isoformat() if r.reported else None,
                 },
                 r,
-            ),
+            )
+            | _optional(r),
         }
         for r in radars
     ]
@@ -219,6 +233,4 @@ def to_geojson(radars: list[Radar], stretches: list[Stretch] | None = None) -> s
                 ),
             }
         )
-    return json.dumps(
-        {"type": "FeatureCollection", "features": features}, ensure_ascii=False, indent=1
-    )
+    return dumps({"type": "FeatureCollection", "features": features})
