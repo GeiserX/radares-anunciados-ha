@@ -15,6 +15,15 @@
   line with town-street circles, never the main road's limit.
 - `status.json` has a `streets` block for each list source: streets announced, how many each method
   placed, and the names left unplaced.
+- DGT fixed radars and sections are read from nap.dgt.es first and from infocar.dgt.es only when NAP
+  fails. infocar has answered HTTP 502 since 2026-10-21, so the DGT source was down in 0.3.1 and
+  Navarra's radars came out twice, once from each publisher. The day the DGT data is dated by now comes
+  from the file's own `<publicationTime>`, because NAP sends no Last-Modified header.
+- Six DGT stretches whose two ends cannot belong to their km range (ends 0 to 23 m apart for 3 to 12 km,
+  or 20 km apart for 150 m) are dropped, so they no longer make stretch zones.
+- The published feed is written without indentation (about a quarter smaller), and DGT and Navarra
+  radars carry three new properties: `road_ref`, `km` and `km_direction` (whether the radar watches
+  traffic going up or down the km markers). See `docs/feed.md`.
 
 ## 0.3.1 (2026-10-21)
 
