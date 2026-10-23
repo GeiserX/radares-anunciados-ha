@@ -50,6 +50,14 @@ class Radar:
     # with another icon, until it is announced again or ages out.
     active: bool = True
     reported: date | None = None  # a REPORTED one: the day a person reported it
+    # The publisher's road number and km marker, when it gives them ("A-7", 580.3).
+    # Called road_ref in the feed: a Point with `road` would change how the app
+    # words its notification.
+    road_ref: str | None = None
+    km: float | None = None
+    # Which way the monitored traffic runs along the km markers, as the publisher
+    # says it: "positive" (km growing), "negative", "both". None: not said.
+    km_direction: str | None = None
 
     def active_on(self, day: date) -> bool:
         if self.valid_from and day < self.valid_from:

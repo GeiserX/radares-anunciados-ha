@@ -350,3 +350,47 @@ def test_a_limit_lookup_does_not_shrink_the_circles_along_a_stretch():
     d11 = by_road(dgt_invive.follow(dgt_invive.parse(XML, MURCIA), OVERPASS), "RM-D11", 0.0)
     radars = [replace(r, maxspeed=50) for r in dgt_invive.zones(d11, ctx())]
     assert {r.radius_m for r in speed.size(radars, Radius())} == {radars[0].radius_m}
+
+
+# --- end points that cannot be the published corridor ----------------------------
+
+
+# Tramo_Invive_1 is CM-220 km 17.3-34.8 with its ends 17 km apart.
+def _at(lat: bytes, lon: bytes) -> bytes:
+    return b"<_0:latitude>" + lat + b"</_0:latitude>\n" + b" " * 16 + b"<_0:longitude>" + lon
+
+
+TO_POINT = _at(b"39.11986", b"-1.99897")
+
+
+def _first(xml: bytes) -> list[str]:
+    return [s.id for s in dgt_invive.parse(xml) if s.id == "dgt_invive-Tramo_Invive_1"]
+
+
+def test_a_corridor_given_as_one_point_for_a_long_km_range_is_dropped(caplog):
+    # Tramo_Invive_46 on 2026-10-23: N-332 km 42.26-53.89, start == end.
+    assert TO_POINT in XML
+    one_point = XML.replace(
+        TO_POINT,
+        _at(b"39.25851", b"-1.91995"),
+    )
+    with caplog.at_level(logging.WARNING):
+        assert _first(one_point) == []
+    assert "Tramo_Invive_1" in caplog.text and "0 m apart" in caplog.text
+    assert "dropped" in caplog.text
+    assert _first(XML) == ["dgt_invive-Tramo_Invive_1"]  # the published ends: kept
+
+
+def test_ends_far_apart_for_a_short_km_range_are_dropped(caplog):
+    # Tramo_Invive_1205 on 2026-10-23: N-Va km 148.0-148.15, ends 20 km apart.
+    short = XML.replace(b">34800.0<", b">17450.0<")
+    assert short != XML
+    with caplog.at_level(logging.WARNING):
+        assert _first(short) == []
+    assert "km 17.3-17.45" in caplog.text
+    # the same 150 m range with ends 110 m apart is a corridor: kept
+    near = short.replace(
+        TO_POINT,
+        _at(b"39.25950", b"-1.91995"),
+    )
+    assert _first(near) == ["dgt_invive-Tramo_Invive_1"]

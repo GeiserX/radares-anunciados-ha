@@ -53,6 +53,7 @@ API_HEADERS = {
 }
 API_BODY = {"admin": False, "order": "-fecha", "filters": {}}
 DIRECTIONS = {"C": "creciente", "D": "decreciente"}
+KM_DIRECTIONS = {"C": "positive", "D": "negative"}  # the feed's km_direction
 # A radar on the same road this close (in km) to one in the DGT file is that radar.
 SAME_RADAR_KM = 0.5
 
@@ -98,6 +99,9 @@ def _radar(road: str, km: float, direction: str, lat: float, lon: float, url: st
         attribution=ATTRIBUTION,
         direction=sense,
         province=PROVINCE,
+        road_ref=road,
+        km=km,
+        km_direction=KM_DIRECTIONS[direction],
     )
 
 
@@ -195,7 +199,7 @@ def fetch(ctx: Context) -> SourceResult:
     radars = _read(ctx)
     try:
         # The same download as the DGT source's, from the shared cache.
-        xml = net.cached_get(dgt.URL, max_age_s=dgt.SOURCE.max_age_s)
+        xml, _ = dgt.download(dgt.SOURCE.max_age_s)
         dgt_radars = dgt.parse(xml, {PROVINCE})
     except Exception as exc:  # a radar listed twice beats a radar missing
         log.warning("navarra: DGT file unreadable (%s); keeping every radar, some twice", exc)

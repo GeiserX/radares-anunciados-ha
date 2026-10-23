@@ -151,6 +151,10 @@ def _radar(row: list[str], key: str, url: str, trailer: bool) -> Radar | None:
         attribution=ATTRIBUTION,
         maxspeed=int(speed),
         province=code,
+        # "C-32 nord" names the stretch of the C-32 north of Barcelona: the road
+        # number is the first word. A range PK (a section) has no single km.
+        road_ref=road.split()[0],
+        km=None if end else _number(start),
     )
 
 

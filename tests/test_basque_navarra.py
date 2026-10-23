@@ -157,18 +157,24 @@ def _bundle_get(url, **kw):
         return NAVARRA_VIEWER.read_bytes()
     if url.endswith("main-D0gC8mEA.js"):
         return NAVARRA_JS.read_bytes()
-    if url == dgt.URL:
+    if url in dgt.URLS:
         raise OSError("DGT down")
     raise AssertionError(url)
 
 
 def _with_dgt(url, **kw):
-    return DGT_NAVARRA.read_bytes() if url == dgt.URL else _bundle_get(url, **kw)
+    return DGT_NAVARRA.read_bytes() if url in dgt.URLS else _bundle_get(url, **kw)
+
+
+def _serve(monkeypatch, get):
+    """``get`` answers both ``net.cached_get`` and the DGT file's dated download."""
+    monkeypatch.setattr(net, "cached_get", get)
+    monkeypatch.setattr(net, "cached_get_dated", lambda url, **kw: (get(url, **kw), None))
 
 
 def test_navarra_reads_the_api_first(monkeypatch):
     monkeypatch.setattr(navarra, "post_api", lambda: NAVARRA_API.read_bytes())
-    monkeypatch.setattr(net, "cached_get", _bundle_get)
+    _serve(monkeypatch, _bundle_get)
     assert len(navarra.fetch(ctx()).radars) == 8  # DGT down: every radar is kept
 
 
@@ -176,7 +182,7 @@ def test_navarra_leaves_the_dgt_radars_to_the_dgt_source(monkeypatch):
     # The live DGT file lists 7 radars in Navarra, 4 to 508 m from the viewer's
     # and with the km cut differently: only A-12 km 5.9 is Navarra's alone.
     monkeypatch.setattr(navarra, "post_api", lambda: NAVARRA_API.read_bytes())
-    monkeypatch.setattr(net, "cached_get", _with_dgt)
+    _serve(monkeypatch, _with_dgt)
     radars = navarra.fetch(ctx()).radars
     assert [r.id for r in radars] == ["navarra-A-12-5.9-D"]
     official = dgt.parse(DGT_NAVARRA.read_bytes(), {"31"})
@@ -207,12 +213,12 @@ def test_navarra_falls_back_on_the_bundle(monkeypatch, answer):
         return answer
 
     monkeypatch.setattr(navarra, "post_api", post)
-    monkeypatch.setattr(net, "cached_get", _bundle_get)
+    _serve(monkeypatch, _bundle_get)
     radars = navarra.fetch(ctx()).radars
     assert len(radars) == 7
     assert all(r.url.endswith("main-D0gC8mEA.js") for r in radars)
     # the bundle lacks A-12, so with the DGT file nothing is Navarra's alone
-    monkeypatch.setattr(net, "cached_get", _with_dgt)
+    _serve(monkeypatch, _with_dgt)
     assert navarra.fetch(ctx()).radars == []
 
 
