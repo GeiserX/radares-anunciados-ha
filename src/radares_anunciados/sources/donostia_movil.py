@@ -6,7 +6,8 @@ day without a plan it says "No hay ninguna ubicación planificada para hoy." The
 map beside it loads ``javascript_geo.js``, generated with the page, which holds
 one LineString per street (WGS84) in a JavaScript object, not JSON: titles are
 single-quoted. Each named street with a line is covered with circles; a street
-without one is skipped and reported. A plan is valid on its day only; the
+without one is looked up in CartoCiudad and Nominatim (``geocode``), and
+skipped and reported if they don't know it either. A plan is valid on its day only; the
 next day its streets go dormant like any periodic list's (``feed.remember``).
 
 Reuse terms: the council's own, as for its fixed radars (``donostia.LICENCE``).
@@ -23,6 +24,7 @@ from datetime import date, timedelta
 
 from .. import net
 from ..geo import cover
+from ..geocode import CARTOCIUDAD_CREDIT, Geocoder, Town, geometry_credit
 from ..model import Announced, Radar, SourceResult, WeeklyList
 from .base import Context, Source
 from .donostia import LICENCE
@@ -37,6 +39,7 @@ SCRIPT = "https://www.donostia.eus/info/ciudadano/radar_movil.nsf/javascript_geo
 ATTRIBUTION = "Ayuntamiento de Donostia / San Sebastián, ubicación del radar móvil"
 PROVINCE = "20"
 PLACE = "Donostia"
+TOWN = Town("Donostia/San Sebastián", "20069", (43.24, -2.09, 43.34, -1.91))
 ENCODING = "cp1252"  # the page says ISO-8859-1; browsers read that as windows-1252
 
 _NO_PLAN = re.compile(r"No hay ninguna ubicaci.n planificada", re.IGNORECASE)
@@ -144,10 +147,16 @@ def _slug(text: str) -> str:
 
 
 def to_radars(
-    day: date, streets: list[str], lines: dict[str, list], radius_m: float
+    day: date,
+    streets: list[str],
+    lines: dict[str, list],
+    radius_m: float,
+    geocoder: Geocoder | None = None,
+    methods: dict[str, str] | None = None,
 ) -> tuple[list[Radar], list[str]]:
-    """Circles along every street of the plan that has a line; and the streets
-    without one. A line the page does not name is left out."""
+    """Circles along every street of the plan that has a line, from the council
+    or else from ``geocoder``; and the streets without one. How each placed street
+    was found goes to ``methods``. A line the page does not name is left out."""
     by_key = {_key(title): found for title, found in lines.items()}
     extra = set(by_key) - {_key(s) for s in streets}
     if extra:
@@ -155,11 +164,18 @@ def to_radars(
     radars: list[Radar] = []
     skipped: list[str] = []
     for street in streets:
-        centres = cover(by_key.get(_key(street), []), radius_m)
+        found, method = by_key.get(_key(street), []), "council"
+        if not found and geocoder is not None:
+            answer = geocoder.street(street, None, [])
+            if answer:
+                found, method = answer.lines, answer.method
+        centres = cover(found, radius_m)
         if not centres:
             log.warning("donostia_movil: no line for %s on %s; skipped", street, day)
             skipped.append(street)
             continue
+        if methods is not None:
+            methods[f"{street} ({PLACE})"] = method
         for n, (lat, lon) in enumerate(centres):
             radars.append(
                 Radar(
@@ -173,7 +189,7 @@ def to_radars(
                     valid_from=day,
                     valid_to=day,
                     url=PAGE,
-                    attribution=ATTRIBUTION,
+                    attribution=geometry_credit(ATTRIBUTION, method),
                     province=PROVINCE,
                 )
             )
@@ -190,13 +206,17 @@ def fetch(ctx: Context) -> SourceResult:
         log.info("donostia_movil: no mobile radar planned for today")
         return SourceResult(lists=[WeeklyList("donostia_movil", monday, published=ctx.day)])
     lines = parse_lines(net.get(SCRIPT).decode(ENCODING, "replace")) if streets else {}
-    radars, skipped = to_radars(day, streets, lines, ctx.radius.street_m(None))
+    placed: dict[str, str] = {}
+    radars, skipped = to_radars(
+        day, streets, lines, ctx.radius.street_m(None), Geocoder(TOWN), placed
+    )
     status = WeeklyList(
         "donostia_movil",
         monday,
         published=day,
         streets=[Announced(s, PLACE) for s in streets],
         skipped=[Announced(s, PLACE) for s in skipped],
+        placed=placed,
     )
     log.info("donostia_movil: plan for %s, %d streets", day, len(streets))
     return SourceResult(radars=radars, lists=[status])
@@ -205,8 +225,10 @@ def fetch(ctx: Context) -> SourceResult:
 SOURCE = Source(
     key="donostia_movil",
     fetch=fetch,
-    attribution=ATTRIBUTION,
-    licence=LICENCE,
+    attribution=f"{ATTRIBUTION}; geometría de una calle sin línea: {CARTOCIUDAD_CREDIT}, "
+    "© OpenStreetMap",
+    licence=f"{LICENCE}. A street the council gives no line for: CartoCiudad (IGN), CC BY 4.0, "
+    "or OpenStreetMap, ODbL 1.0",
     max_age_s=3_600,
     provinces=frozenset({PROVINCE}),
 )

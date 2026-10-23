@@ -47,7 +47,8 @@ jobs:
       # as a fresh runner would.
       - name: Clear the cache folder
         run: rm -rf "${{ runner.temp }}/radares-cache"
-      # Each source's last good result and the announced streets, from the previous published run. A
+      # Each source's last good result, the announced streets and the geocoder answers (a street is
+      # asked once), from the previous published run. A
       # source that is down falls back to it (sources.run). The downloads are NOT kept: a download
       # still fresh in the cache is reused without a request, and status.json would then call a
       # source `ok` with this run's time while its site is down.
@@ -57,6 +58,7 @@ jobs:
           path: |
             ${{ runner.temp }}/radares-cache/sources
             ${{ runner.temp }}/radares-cache/announced.json
+            ${{ runner.temp }}/radares-cache/geocoded
           key: feed-state-${{ github.run_id }}
           restore-keys: feed-state-
       - name: Build the feed
@@ -70,6 +72,7 @@ jobs:
           path: |
             ${{ runner.temp }}/radares-cache/sources
             ${{ runner.temp }}/radares-cache/announced.json
+            ${{ runner.temp }}/radares-cache/geocoded
           key: feed-state-${{ github.run_id }}-${{ github.run_attempt }}
       - name: Upload the site
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0

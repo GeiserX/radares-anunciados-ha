@@ -50,8 +50,10 @@ interferes with a radar signal is out of scope, whoever asks for it.
   bounding boxes
 - `speed.py`: radius by speed limit; `LOOKUPS` is the hook for a limit lookup; `geo.py`: distances,
   street cover, ETRS89 UTM to WGS84
-- `streets.py`: street + district from a police list to circle centres (two Overpass queries);
-  `streetnames.py`: abbreviations in police lists ("Avda.", "Pº") expanded
+- `streets.py`: street + district from a police list to circle centres (two Overpass queries, then
+  the name written another way, then a road number); `streetnames.py`: abbreviations in police lists
+  ("Avda.", "Pº") expanded; `geocode.py`: CartoCiudad then Nominatim for a street those miss, answers
+  cached in `geocoded/` in the cache folder
 - `osm_limits.py`: the speed limit under a radar whose source gives none, from OpenStreetMap
 - `feed.py`: merge, dedupe, dormant streets, GeoJSON; `ha.py`: Home Assistant zone sync over the websocket API
 - `store.py`: each source's last good result and the announced streets, in the cache folder
@@ -98,7 +100,12 @@ interferes with a radar signal is out of scope, whoever asks for it.
   (failed, no last good copy), `feed.merge` holds back the spots in its provinces and logs it.
 - La Opinión's street list is `ul.ft-list--primary`. A plain `ft-list` on the same page holds headlines.
 - A street or district not found is skipped, never guessed. It is logged, exported as
-  `radares_street_skipped` and named in the "Radares actualizados" notification.
+  `radares_street_skipped`, listed under `streets.unplaced` in `status.json` and named in the
+  "Radares actualizados" notification. A geocoder answer counts only inside the municipality, close
+  to the announced name (`geocode.SIMILAR`) and within `NEAR_M` of the district, or naming the
+  district in its address when the district is not on the map.
+- Nominatim: at most one request a second, `net.USER_AGENT`, every answer cached
+  (`geocode.Geocoder`). Tests never reach a geocoder (`tests/conftest.py`).
 - `feed.yml` publishes from a self-hosted runner in Spain (job `publish`, `schedule` and
   `workflow_dispatch` only); a pull request builds on `ubuntu-latest` (job `check`). No other job
   in any workflow targets the self-hosted runner, and none uses `pull_request_target` (a test
