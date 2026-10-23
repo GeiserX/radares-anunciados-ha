@@ -233,5 +233,5 @@ distance, the decision, the bearing and the confidence. Delete the scratch folde
 
 roads.json is a database derived from OpenStreetMap, under the
 [ODbL 1.0](https://opendatacommons.org/licenses/odbl/1-0/), credited "© OpenStreetMap contributors".
-A feed feature with an entry in roads.json or a derived bearing gets `; road: © OpenStreetMap
+A feed feature with an entry in roads.json or a derived bearing gets `; carretera: © OpenStreetMap
 contributors (ODbL 1.0)` added to its `attribution`, unless it already credits OpenStreetMap.

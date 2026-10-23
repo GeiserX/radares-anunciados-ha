@@ -369,7 +369,7 @@ def test_enrich_adds_properties_at_the_end_and_credits_osm_once():
     out = build.enrich(feed, {"a": {"bearing": 12}}, {"a", "b"})
     a, b2, c = out["features"]
     assert list(a["properties"])[-1] == "bearing"
-    assert a["properties"]["attribution"] == "DGT; road: © OpenStreetMap contributors (ODbL 1.0)"
+    assert a["properties"]["attribution"] == "DGT; carretera: © OpenStreetMap contributors (ODbL 1.0)"
     assert b2["properties"] == before["features"][1]["properties"]
     assert c == before["features"][2]
     assert [f["geometry"] for f in out["features"]] == [f["geometry"] for f in before["features"]]

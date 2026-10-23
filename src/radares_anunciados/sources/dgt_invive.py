@@ -379,7 +379,7 @@ def follow(stretches: list[Stretch], payload: bytes | None) -> list[Stretch]:
             log.warning("%s %s: road %s not followed; straight line", KEY, s.id, s.road)
             out.append(replace(s, name=s.name + STRAIGHT_NOTE))
         else:
-            attribution = f"{s.attribution}; road: {OSM_ATTRIBUTION}"
+            attribution = f"{s.attribution}; carretera: {OSM_ATTRIBUTION}"
             out.append(replace(s, line=tuple(line), attribution=attribution))
     return out
 
