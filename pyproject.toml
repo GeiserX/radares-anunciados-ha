@@ -20,6 +20,9 @@ dev = [
     "pyyaml>=6.0.3",
     "ruff>=0.13",
 ]
+roads = [
+    "osmium>=4.3.2",
+]
 
 [build-system]
 requires = ["hatchling"]

@@ -288,6 +288,21 @@ def main(argv: list[str] | None = None) -> int:
     )
     p_sync = sub.add_parser("sync", help="make Home Assistant zones equal to the radar list")
     p_sync.add_argument("--dry-run", action="store_true", help="show the plan, change nothing")
+    p_roads = sub.add_parser(
+        "roads",
+        help="write roads.json (road lines and approaches) from an OSM extract, add the "
+        "derived bearings to the feed and the roads block to its status (the published feed only)",
+    )
+    p_roads.add_argument("--feed", required=True, help="feed.geojson written by `radares feed`")
+    p_roads.add_argument("--status", required=True, help="status.json written with it")
+    p_roads.add_argument("--pbf", required=True, help="the OpenStreetMap extract (.osm.pbf)")
+    p_roads.add_argument("--output", required=True, help="where to write roads.json")
+    p_roads.add_argument("--audit", help="also write one CSV row per radar: signals, decision")
+    p_roads.add_argument(
+        "--fallback",
+        help="folder that keeps the last good roads.json: refreshed on success, put back "
+        "(and the status marked stale) on failure",
+    )
     sub.add_parser("run", help="sync every RADARES_INTERVAL seconds, forever")
     sub.add_parser("health", help="exit 0 if `radares run` synced recently (container check)")
     args = parser.parse_args(argv)
@@ -318,6 +333,25 @@ def main(argv: list[str] | None = None) -> int:
                 )
             with open(args.status, "w", encoding="utf-8") as fh:
                 json.dump(report, fh, ensure_ascii=False, indent=1)
+        return 0
+
+    if args.command == "roads":
+        from pathlib import Path
+
+        from .roads import build
+
+        try:
+            build.run(
+                Path(args.feed),
+                Path(args.status),
+                Path(args.pbf),
+                Path(args.output),
+                audit=Path(args.audit) if args.audit else None,
+                fallback=Path(args.fallback) if args.fallback else None,
+            )
+        except Exception as exc:
+            log.error("roads step failed, roads.json not refreshed: %s", exc)
+            return 1
         return 0
 
     if args.command == "sync":
