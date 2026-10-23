@@ -77,7 +77,8 @@ def test_five_real_weeks_place_every_street_but_one():
     items = all_weeks()
     found = locate(items, (FIX / "overpass_weeks.json").read_bytes(), 300)
     missing = [i.street for i, c in found.items() if not c]
-    # OSM has only "Camino del Batán" there; too different to guess
+    # this answer was saved before the search took small words ("Molino del Batán"), and tests
+    # reach no geocoder: the street stays unplaced here (test_geocode places it)
     assert missing == ["Carril Molino Batán"]
 
 

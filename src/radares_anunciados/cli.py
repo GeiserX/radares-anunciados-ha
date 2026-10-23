@@ -32,6 +32,7 @@ import logging
 import os
 import sys
 import time
+from collections import Counter
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime
 
@@ -153,6 +154,20 @@ def _iso(ts: float | None) -> str | None:
     return datetime.fromtimestamp(ts, UTC).isoformat(timespec="seconds")
 
 
+def street_report(lists: list[WeeklyList]) -> dict:
+    """How a periodic list's streets were placed: how many were announced, how
+    many each method placed (``streets.Placed.method``), and the names left
+    unplaced, so they can be fixed."""
+    announced = [s.label() for w in lists for s in w.streets]
+    methods = Counter(m for w in lists for m in w.placed.values())
+    return {
+        "announced": len(announced),
+        "placed": sum(methods.values()),
+        "by_method": dict(sorted(methods.items())),
+        "unplaced": [s.label() for w in lists for s in w.skipped],
+    }
+
+
 def status(found: Collected, now: float) -> dict:
     """What the published feed is made of, per source: "ok" (fetched this run),
     "stale" (this run failed; its last good result is in the feed, from
@@ -182,6 +197,8 @@ def status(found: Collected, now: float) -> dict:
                 "spanish_ip": source.spanish_ip,
             }
         )
+        if o.result.lists:
+            rows[-1]["streets"] = street_report(o.result.lists)
     return {
         "generated": _iso(now),
         "features": len(found.radars) + len(found.stretches),

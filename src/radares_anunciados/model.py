@@ -102,6 +102,10 @@ class WeeklyList:
     published: date | None = None  # None: no list found for this week yet
     streets: list[Announced] = field(default_factory=list)
     skipped: list[Announced] = field(default_factory=list)  # not placed on the map
+    # Each placed street's label and how it was placed: "osm", "osm_fuzzy",
+    # "osm_road", "cartociudad", "nominatim" (``streets.Placed.method``) or
+    # "council" (the publisher's own line).
+    placed: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass

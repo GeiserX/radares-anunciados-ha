@@ -57,10 +57,42 @@ Murcia has a dozen streets called Avenida Juan Carlos I, so a name alone is not 
    anywhere on it is inside one. The circles are sized by the street's limit in OpenStreetMap, the
    one on most of the stretch (see below).
 
-A street or district it can't find is skipped and logged, never guessed. The "Radares actualizados"
+When that finds nothing, three more steps run, each only for the streets the earlier ones missed:
+
+4. The same name written another way. Small words go ("Molino Batán" is "Molino del Batán"),
+   numbers match roman numerals ("Juan Carlos 1" is "Juan Carlos I"), and a street type in Catalan,
+   Valencian, Galician or Basque counts as the Spanish one ("Carrer", "Rúa", "Miracruz kalea"). A
+   trailing abbreviation moves to the front ("San Ignacio de Loyola Avda."). León also takes a name
+   with a typo, when one in-town name is alike enough and no other ties it.
+5. A road number in the name ("Auxiliar MU-30", "Carretera Auxiliar A-30"): the road with that
+   number near the district. The circles along it cover the service road beside it.
+6. The geocoders (`geocode.py`). First [CartoCiudad](https://www.cartociudad.es), Spain's official
+   street register from the IGN: the street by name inside the municipality, and inside the district
+   when one is given, then the street's whole line. Then [Nominatim](https://nominatim.org),
+   OpenStreetMap's own search, at most one request a second. An answer counts only if it is a street
+   of that municipality, its name is the announced one or nearly (85% of its letters in common once
+   the street type and small words go), and it lies within 5 km of the district when the district is
+   on the map. When the district is not on the map, the answer's address must name it. Several
+   streets of the name and no district to choose between them give no answer. Every answer, an empty
+   one too, is kept in `geocoded/<INE code>.json` in the cache folder: a street found is not asked
+   again for 180 days, one not found for 14. A run asks each town at most 60 requests.
+
+A radar placed from CartoCiudad's line credits it in its attribution ("geometría CartoCiudad, CC BY
+4.0 scne.es"). Donostia's council draws its own line for each street; a street it draws none for goes
+straight to the geocoders.
+
+A street none of these find is skipped and logged, never guessed. The "Radares actualizados"
 notification names it and [`/metrics`](alerting.md) exports it, so you know that street has no
-warning. Over five real weeks (26 streets) one was skipped: "Carril Molino Batán", which
-OpenStreetMap only has as "Camino del Batán".
+warning. `status.json` gives, for each list source, a `streets` block: how many streets were
+announced, how many each step placed (`osm`, `osm_fuzzy`, `osm_road`, `cartociudad`, `nominatim`,
+`council`) and the names left unplaced.
+
+Over eight real Murcia weeks (47 streets) the name search alone placed 41. The six it missed were
+"Carril Molino Batán" (OpenStreetMap: "Carril Molino del Batán"), "Calle Orilla de la Azarbe" ("Orilla
+del Azarbe"), "Auxiliar MU-30" and "Carretera Auxiliar A-30" (service roads named by their road),
+and "Calle Marbella" and "Camino Mota del Reguerón", which OpenStreetMap has with no name. Steps 4 to
+6 place all six. Over León's September post and five iLeón weeks (97 streets) the one miss was
+"San Ignacio de Loyola Avda.", which step 4 places.
 
 ## How big a zone is
 

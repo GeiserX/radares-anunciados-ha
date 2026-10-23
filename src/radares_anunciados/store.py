@@ -76,6 +76,7 @@ def list_from_json(d: dict) -> WeeklyList:
         published=_date(d.get("published")),
         streets=[_announced(a) for a in d.get("streets", [])],
         skipped=[_announced(a) for a in d.get("skipped", [])],
+        placed=dict(d.get("placed") or {}),
     )
 
 

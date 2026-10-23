@@ -19,6 +19,7 @@ from collections.abc import Callable
 from datetime import date, timedelta
 
 from .. import net
+from ..geocode import CARTOCIUDAD_CREDIT, Geocoder, Town, geometry_credit
 from ..model import Radar, SourceResult
 from ..streetnames import expand
 from ..streets import STREET_TYPES, Announced, WeeklyList, place, places_query, ways_query
@@ -29,6 +30,7 @@ log = logging.getLogger(__name__)
 # Municipality of Murcia with a margin, (south, west, north, east)
 BBOX = (37.78, -1.40, 38.10, -0.93)
 PROVINCE = "30"
+TOWN = Town("Murcia", "30030", BBOX)
 CREDIT = "Policía Local de Murcia (lista semanal, leída en {}); geometría © OpenStreetMap"
 ATTRIBUTION = CREDIT.format("la prensa local")
 # The outlets the police's list is read in, credited by name in each radar.
@@ -183,18 +185,24 @@ def to_radars(
     radius_m: float | Callable[[int | None], float],
     url: str | None,
     skipped: list[Announced] | None = None,
+    geocoder: Geocoder | None = None,
+    methods: dict[str, str] | None = None,
 ) -> list[Radar]:
-    """Circles for every street placed on the map; the others go to ``skipped``.
-    ``radius_m`` is a number or a function of the street's limit in OSM."""
+    """Circles for every street placed on the map; the others go to ``skipped``,
+    and how each placed one was found to ``methods``. ``radius_m`` is a number or
+    a function of the street's limit in OSM. A street OSM misses is asked of
+    ``geocoder``."""
     start, end = week_of(published)
     radars: list[Radar] = []
-    for item, placed in place(items, overpass_json, radius_m).items():
+    for item, placed in place(items, overpass_json, radius_m, geocoder).items():
         centres = placed.centres
         if not centres:
             log.warning("could not place %s (%s) on the map; skipped", item.street, item.place)
             if skipped is not None:
                 skipped.append(item)
             continue
+        if methods is not None:
+            methods[item.label()] = placed.method
         label = f"Radar anunciado {item.label()}"
         slug = re.sub(r"[^a-z0-9]+", "-", f"{item.street} {item.place or ''}".lower()).strip("-")
         for n, (lat, lon) in enumerate(centres):
@@ -210,7 +218,7 @@ def to_radars(
                     valid_from=start,
                     valid_to=end,
                     url=url,
-                    attribution=credit(url),
+                    attribution=geometry_credit(credit(url), placed.method),
                     maxspeed=placed.maxspeed,
                     province=PROVINCE,
                 )
@@ -241,7 +249,10 @@ def fetch(
     overpass = json.dumps(
         {"elements": json.loads(places)["elements"] + json.loads(ways)["elements"]}
     ).encode()
-    return to_radars(items, overpass, published, radius_m, url, status.skipped), status
+    radars = to_radars(
+        items, overpass, published, radius_m, url, status.skipped, Geocoder(TOWN), status.placed
+    )
+    return radars, status
 
 
 def fetch_source(ctx: Context) -> SourceResult:
@@ -252,11 +263,12 @@ def fetch_source(ctx: Context) -> SourceResult:
 SOURCE = Source(
     key="murcia",
     fetch=fetch_source,
-    attribution=ATTRIBUTION,
+    attribution=f"{ATTRIBUTION} y {CARTOCIUDAD_CREDIT}",
     licence=(
         "the Policía Local's weekly list, which it posts on its social networks as an "
         "image; the feed reads it in the press and takes its facts (street, district, "
-        "week), not the article's text. Geometry: ODbL 1.0"
+        "week), not the article's text. Geometry: ODbL 1.0; a street OpenStreetMap misses, "
+        "CartoCiudad (IGN), CC BY 4.0"
     ),
     max_age_s=7 * 86_400,
     provinces=frozenset({PROVINCE}),

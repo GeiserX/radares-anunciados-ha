@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+- A street of a police list (Murcia, León, Donostia) that OpenStreetMap's name search missed is now
+  looked for in more ways before it is skipped: the name written another way ("Molino Batán" for
+  "Molino del Batán", Basque, Catalan and Galician street types, roman numerals, a trailing "Avda."),
+  the road a road number names ("Auxiliar MU-30"), then CartoCiudad, Spain's official street register
+  (IGN, CC BY 4.0), and Nominatim. Over eight Murcia weeks this places 47 of 47 streets, against 41
+  before; over León's September post and five iLeón weeks 97 of 97, against 96. Every geocoder answer is cached, so a street is
+  asked once. A radar placed from CartoCiudad credits it in its attribution.
+- `status.json` has a `streets` block for each list source: streets announced, how many each method
+  placed, and the names left unplaced.
+
 ## 0.3.1 (2026-10-21)
 
 - The image no longer trusts certificates issued through the eight eMudhra (emSign) intermediates

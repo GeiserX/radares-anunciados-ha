@@ -28,6 +28,8 @@ _TYPES = [
     (r"Trav\.?|Trva\.?", "Travesía"),
 ]
 _LEADING_TYPE = [(re.compile(rf"^(?:{p})(?:\s+|(?<=/)|(?<=\.)(?=\S))", re.I), f) for p, f in _TYPES]
+# The same abbreviation written after the name: "San Ignacio de Loyola Avda."
+_TRAILING_TYPE = [(re.compile(rf"\s+(?:{p})$", re.I), f) for p, f in _TYPES if p != "C/"]
 
 # A shortened word anywhere in a name, keyed by its folded form, with or without the dot.
 WORDS = {
@@ -62,6 +64,12 @@ def expand(text: str) -> str:
         text, n = pattern.subn(full + " ", text, count=1)
         if n:
             break
+    else:
+        for pattern, full in _TRAILING_TYPE:
+            text, n = pattern.subn("", text, count=1)
+            if n:
+                text = f"{full} {text}"
+                break
 
     def word(m: re.Match[str]) -> str:
         return WORDS.get(fold(m.group(1)), m.group(0))
