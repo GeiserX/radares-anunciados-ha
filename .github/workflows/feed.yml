@@ -55,6 +55,19 @@ jobs:
       # source that is down falls back to it (sources.run). The downloads are NOT kept: a download
       # still fresh in the cache is reused without a request, and status.json would then call a
       # source `ok` with this run's time while its site is down.
+      # actions/cache matches an entry only when the path list below is identical, so adding a path
+      # hides every older entry. On 2026-10-23 adding geocoded/ did that: the next run restored nothing
+      # while DGT answered 502, and the feed went out without DGT. Restore the entries saved with the
+      # older list first, then the current list over them, so a change to the paths never loses a
+      # source's last good result.
+      - name: Restore the last good results saved before geocoded/ was cached
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ${{ runner.temp }}/radares-cache/sources
+            ${{ runner.temp }}/radares-cache/announced.json
+          key: feed-state-${{ github.run_id }}
+          restore-keys: feed-state-
       - name: Restore the last good results
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:

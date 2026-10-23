@@ -519,7 +519,8 @@ def test_donostia_asks_the_geocoder_for_a_street_the_council_draws_no_line_for()
 def test_the_published_run_keeps_the_geocoder_answers():
     from test_publish import kept_between_runs
 
-    assert all("geocoded" in block for block in kept_between_runs())
+    *_, current_restore, saved = kept_between_runs()
+    assert "geocoded" in current_restore and "geocoded" in saved
 
 
 def test_a_street_of_another_municipality_is_never_taken(monkeypatch):
