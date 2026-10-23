@@ -114,6 +114,11 @@ interferes with a radar signal is out of scope, whoever asks for it.
   requires approval of every outside contributor's run, and the runner is ephemeral (one job per
   registration) with no Docker socket.
 - Never approve a run of a fork's pull request without reading its changes under `.github/`.
+- `feed.yml` keeps each source's last good result between runs with `actions/cache`, which matches an
+  entry only when its path list is identical. Changing that list hides every older entry: on
+  2026-10-23 adding `geocoded/` made the next run restore nothing while DGT answered 502, and the
+  published feed lost every DGT radar. A change to the kept paths adds a restore step with the old
+  list before the current one (a test checks the order and that old lists only cover kept paths).
 - One radar drawn as several circles is named `Radar anunciado …` (police list) or `Radar de tramo …`
   (section). The blueprint alerts once per such name; every other zone alerts on its own, because
   names like OSM's `Radar (límite 50)` repeat across different cameras.

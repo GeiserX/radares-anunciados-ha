@@ -160,8 +160,12 @@ def test_a_scheduled_run_never_calls_a_source_ok_from_a_download_it_did_not_make
     max age is reused without a request; kept between runs, it would make a source whose
     site is down look `ok`, with this run's time, in status.json."""
     blocks = kept_between_runs()
-    assert len(blocks) == 2 and blocks[0] == blocks[1], "restore and save must keep the same paths"
-    kept = blocks[0]
+    *restores, saved = blocks
+    assert restores and restores[-1] == saved, "last restore and save differ"
+    # earlier restores bring back entries saved under an older path list (actions/cache matches
+    # an entry only on its exact list); they may only cover paths that are still kept
+    assert all(set(r) <= set(saved) for r in restores), "a restore keeps an unsaved path"
+    kept = saved
     assert "" not in kept, "the whole cache folder, downloads included, is kept between runs"
 
     calls = []
