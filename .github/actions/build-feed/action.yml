@@ -48,7 +48,7 @@ runs:
       run: |
         rm -rf _site
         mkdir -p _site
-        cp site/index.html site/map.js site/style.css LICENSE-DATA.md _site/
+        cp site/index.html site/map.js site/style.css site/icon.svg LICENSE-DATA.md _site/
         uv run --no-sync radares feed --output _site/feed.geojson --status _site/status.json --save-history
     # Python, not jq: the self-hosted runner's image has no jq.
     - name: Report the sources
