@@ -117,6 +117,72 @@ function sourcesTable(status) {
   }
 }
 
+// roads.json: Google encoded polylines, precision 5, latitude then longitude.
+function decodePolyline(text) {
+  const points = [];
+  let index = 0;
+  let lat = 0;
+  let lon = 0;
+  while (index < text.length) {
+    const deltas = [];
+    for (let k = 0; k < 2; k++) {
+      let shift = 0;
+      let result = 0;
+      let byte;
+      do {
+        if (index >= text.length) throw new Error("truncated polyline");
+        byte = text.charCodeAt(index++) - 63;
+        result |= (byte & 0x1f) << shift;
+        shift += 5;
+      } while (byte >= 0x20);
+      deltas.push(result & 1 ? ~(result >> 1) : result >> 1);
+    }
+    lat += deltas[0];
+    lon += deltas[1];
+    points.push([lat / 1e5, lon / 1e5]);
+  }
+  return points;
+}
+
+// A stretch is drawn along its road when roads.json has it; the approaches to each radar
+// are not drawn (on a phone they would cover the map).
+function followRoads(features, roads) {
+  const entries = (roads && roads.features) || {};
+  let drawn = 0;
+  for (const f of features) {
+    const entry = entries[f.id];
+    if (!entry || typeof entry.line !== "string" || (f.geometry || {}).type !== "LineString") continue;
+    try {
+      const coords = decodePolyline(entry.line).map(([lat, lon]) => [lon, lat]);
+      if (coords.length >= 2) {
+        f.geometry = { type: "LineString", coordinates: coords };
+        drawn++;
+      }
+    } catch (err) {
+      console.warn(`roads.json: ${f.id} not drawn`, err);
+    }
+  }
+  return drawn;
+}
+
+function roadsNote(block) {
+  if (!block) return;
+  const n = (v) => (Number.isFinite(v) ? v.toLocaleString("es-ES") : "?");
+  const p = el(
+    "p",
+    `Trazado de carreteras (roads.json): ${block.status}, datos de OpenStreetMap del ` +
+      `${block.osm_date || "?"}. ${n(block.stretches_followed)} de ${n(block.stretches_in_bbox)} ` +
+      `tramos siguen su carretera; ${n(block.points_with_approaches)} de ` +
+      `${n(block.points_in_bbox)} radares tienen la carretera que lleva a ellos; ` +
+      `${n(block.points_with_bearing)} con sentido de circulación ` +
+      `(${n(block.points_high_confidence)} con confianza alta).`,
+    "note",
+  );
+  p.id = "roads";
+  if (block.error) p.title = block.error;
+  document.getElementById("sources").after(p);
+}
+
 async function getJSON(url) {
   const res = await fetch(url, { cache: "no-cache" });
   if (!res.ok) throw new Error(`${url}: HTTP ${res.status}`);
@@ -146,7 +212,12 @@ async function main() {
     document.querySelector("header").append(warn);
     document.body.dataset.stale = "true";
   }
+  roadsNote(status.roads);
   const licences = Object.fromEntries((status.sources || []).map((s) => [s.source, s.licence]));
+  // roads.json is optional: without it every stretch is drawn as published
+  const roadsLoad = status.roads
+    ? getJSON("roads.json").catch((err) => console.warn("roads.json not loaded", err))
+    : Promise.resolve(null);
   let data;
   try {
     data = await getJSON("feed.geojson");
@@ -156,6 +227,7 @@ async function main() {
     throw err;
   }
   const features = data.features || [];
+  document.body.dataset.roads = String(followRoads(features, await roadsLoad));
   const layer = L.geoJSON(data, {
     style: (f) => style(f.properties || {}),
     pointToLayer: (f, latlng) => L.circleMarker(latlng, style(f.properties || {})),

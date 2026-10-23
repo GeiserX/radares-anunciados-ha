@@ -1,13 +1,21 @@
 name: Build the feed
 description: >-
   Builds feed.geojson, status.json and the map in _site/ for all of Spain from every
-  registered source, on the Python the image ships, and fails on an empty feed. Shared by
-  the publishing job and the pull request job of feed.yml.
+  registered source, on the Python the image ships, and fails on an empty feed. With an
+  OpenStreetMap extract, also roads.json and the derived bearings (`radares roads`). Shared
+  by the publishing job and the pull request job of feed.yml.
 
 inputs:
   cache:
     description: RADARES_CACHE, the folder with each source's last good result
     required: true
+  pbf:
+    description: >-
+      An OpenStreetMap extract (.osm.pbf) for `radares roads`; empty skips the roads step.
+      A failed roads step never fails the build: the last good roads.json from the cache's
+      roads/ folder is published and status.json says stale.
+    required: false
+    default: ""
 
 runs:
   using: composite
@@ -32,7 +40,8 @@ runs:
     - name: Install
       shell: bash
       run: |
-        uv sync --locked --no-dev
+        # the roads group is pyosmium, for `radares roads`; the image never installs it
+        uv sync --locked --no-dev --group roads
         actual=$(uv run --no-sync python -c 'import platform; print(platform.python_version())')
         echo "The feed builds on Python $actual (Dockerfile: $UV_PYTHON)"
         if [ "$actual" != "$UV_PYTHON" ]; then
@@ -50,6 +59,17 @@ runs:
         mkdir -p _site
         cp site/index.html site/map.js site/style.css site/icon.svg LICENSE-DATA.md _site/
         uv run --no-sync radares feed --output _site/feed.geojson --status _site/status.json --save-history
+    - name: Follow the roads
+      if: inputs.pbf != ''
+      shell: bash
+      env:
+        PBF: ${{ inputs.pbf }}
+        RADARES_CACHE: ${{ inputs.cache }}
+      run: |
+        if ! uv run --no-sync radares roads --feed _site/feed.geojson --status _site/status.json \
+            --pbf "$PBF" --output _site/roads.json --fallback "$RADARES_CACHE/roads"; then
+          echo "::warning::the roads step failed: roads.json is the last good one, if any, and status.json says stale"
+        fi
     # Python, not jq: the self-hosted runner's image has no jq.
     - name: Report the sources
       shell: bash
@@ -69,6 +89,18 @@ runs:
                 f"| {s['in_feed']} | {s['data_time'] or 'never'} | {s['updated'] or ''} | {error} |"
             )
         rows += ["", f"Features in the feed: {status['features']}"]
+        roads = status.get("roads")
+        if roads:
+            counts = ", ".join(
+                f"{k} {v}" for k, v in roads.items() if k.startswith(("stretches", "points"))
+            )
+            rows += [
+                "",
+                f"roads.json: {roads['status']}, {roads.get('bytes', 0):,} bytes,"
+                f" OSM data of {roads.get('osm_date')}; {counts}",
+            ]
+            if roads.get("error"):
+                rows.append(f"roads error: {roads['error']}")
         with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as fh:
             fh.write("\n".join(rows) + "\n")
         print(json.dumps(status, indent=2, ensure_ascii=False))

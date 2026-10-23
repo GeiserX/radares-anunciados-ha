@@ -23,6 +23,7 @@ on:
       - ".github/workflows/feed.yml"
       - "site/**"
       - "src/**"
+      - "tests/fixtures/roads/**"
       - "LICENSE-DATA.md"
       - "pyproject.toml"
       - "uv.lock"
@@ -38,7 +39,9 @@ jobs:
   publish:
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: [self-hosted, Linux, X64]
-    timeout-minutes: 45
+    # The roads step reads a 1.5 GB extract: about 6 minutes on a Mac mini's NVMe, up to three
+    # times that on the runner's array, plus a download of a few minutes once a week.
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v7
         with:
@@ -74,10 +77,50 @@ jobs:
             ${{ runner.temp }}/radares-cache/geocoded
           key: feed-state-${{ github.run_id }}
           restore-keys: feed-state-
+      # The last good roads.json and its status block, put back when the roads step fails. Its own
+      # key: actions/cache matches an entry only on an identical path list, so adding it to the
+      # list above would hide every source's last good result for one run.
+      - name: Restore the last good road geometry
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/radares-cache/roads
+          key: roads-state-${{ github.run_id }}
+          restore-keys: roads-state-
+      # Geofabrik's extract of Spain (1.5 GB, rebuilt daily), refreshed when the copy is a week
+      # old. It lives in the runner's bind-mounted _work folder, beside the workspace: the job
+      # wipes runner.temp and an image update wipes the tool cache. A failed download leaves the
+      # old copy, or none, and the roads step then republishes the last good roads.json.
+      - name: Refresh the OpenStreetMap extract
+        continue-on-error: true
+        env:
+          PBF_DIR: ${{ runner.workspace }}/../radares-pbf
+        run: |
+          mkdir -p "$PBF_DIR"
+          file="$PBF_DIR/spain-latest.osm.pbf"
+          if [ -f "$file" ] && [ -z "$(find "$file" -mtime +6)" ]; then
+            echo "extract of $(date -u -r "$file" +%F), under a week old: kept"
+            exit 0
+          fi
+          tmp="$file.download"
+          rm -f "$tmp"
+          since=()
+          if [ -f "$file" ]; then since=(--time-cond "$file"); fi
+          # --remote-time: the file's date is Geofabrik's Last-Modified, the day of the data
+          curl --fail --location --silent --show-error --retry 3 --remote-time "${since[@]}" \
+            --output "$tmp" https://download.geofabrik.de/europe/spain-latest.osm.pbf
+          if [ -s "$tmp" ]; then mv "$tmp" "$file"; else rm -f "$tmp"; fi
+          ls -l "$PBF_DIR"
       - name: Build the feed
         uses: ./.github/actions/build-feed
         with:
           cache: ${{ runner.temp }}/radares-cache
+          pbf: ${{ runner.workspace }}/../radares-pbf/spain-latest.osm.pbf
+      - name: Save the road geometry
+        if: always()
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/radares-cache/roads
+          key: roads-state-${{ github.run_id }}-${{ github.run_attempt }}
       - name: Save the last good results
         if: always()
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -104,16 +147,31 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
+      # The roads step runs on a committed clip of the extract around Murcia, so every pull
+      # request runs it end to end without downloading 1.5 GB from Geofabrik.
       - name: Build the feed
         uses: ./.github/actions/build-feed
         with:
           cache: ${{ runner.temp }}/radares-cache
+          pbf: tests/fixtures/roads/clip.osm.pbf
       - name: Keep the built site for review
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: feed-site
           path: _site
           retention-days: 7
+      # The publishing job republishes the last good roads.json when the step fails; here a
+      # failure (too large, too little followed inside the clip) must fail the pull request.
+      - name: Check the roads step passed
+        run: |
+          python3 - <<'PY'
+          import json, sys
+          roads = json.load(open("_site/status.json", encoding="utf-8")).get("roads") or {}
+          print(json.dumps(roads, indent=1))
+          if roads.get("status") != "ok":
+              print(f"::error::the roads step did not pass on the clip: {roads.get('error')}")
+              sys.exit(1)
+          PY
 
   deploy:
     needs: publish

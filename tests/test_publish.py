@@ -135,7 +135,8 @@ def test_an_empty_feed_still_writes_a_valid_status(monkeypatch, tmp_path):
 
 
 def kept_between_runs() -> list[list[str]]:
-    """The paths of each actions/cache step in feed.yml, relative to the cache folder."""
+    """The paths of each actions/cache step in feed.yml that keeps the sources' last good
+    results, relative to the cache folder. The road geometry has its own entry (roads/)."""
     lines = (ROOT / ".github" / "workflows" / "feed.yml").read_text("utf-8").splitlines()
     blocks = []
     for i, line in enumerate(lines):
@@ -150,7 +151,34 @@ def kept_between_runs() -> list[list[str]]:
         elif re.match(r"\s*path: .*radares-cache", line):
             blocks.append([line.split("path:", 1)[1].strip()])
     prefix = "${{ runner.temp }}/radares-cache"
-    return [[p.removeprefix(prefix).lstrip("/") for p in block] for block in blocks]
+    blocks = [[p.removeprefix(prefix).lstrip("/") for p in block] for block in blocks]
+    return [b for b in blocks if b != ["roads"]]
+
+
+def test_the_road_geometry_is_kept_between_runs_under_its_own_key():
+    """roads.json is put back when the roads step fails. Its cache entry has its own key and
+    path: actions/cache matches an entry only on an identical path list, so adding roads/ to
+    the sources' list would hide their last good results for one run."""
+    steps = feed_jobs()["publish"]["steps"]
+    roads = [s for s in steps if "roads-state-" in str(s.get("with", {}).get("key", ""))]
+    assert [s["uses"].split("@")[0] for s in roads] == [
+        "actions/cache/restore",
+        "actions/cache/save",
+    ]
+    restore, save = roads
+    folder = "${{ runner.temp }}/radares-cache/roads"
+    assert restore["with"]["path"] == save["with"]["path"] == folder
+    assert restore["with"]["restore-keys"] == "roads-state-"
+    assert save["if"] == "always()"
+    names = [s.get("name") for s in steps]
+    assert names.index(restore["name"]) < names.index("Build the feed") < names.index(save["name"])
+    # the build's roads step refreshes and falls back on exactly that folder
+    action = yaml.safe_load(
+        (ROOT / ".github" / "actions" / "build-feed" / "action.yml").read_text("utf-8")
+    )
+    step = next(s for s in action["runs"]["steps"] if s.get("name") == "Follow the roads")
+    assert '--fallback "$RADARES_CACHE/roads"' in step["run"]
+    assert step["env"]["RADARES_CACHE"] == "${{ inputs.cache }}"
 
 
 def test_a_scheduled_run_never_calls_a_source_ok_from_a_download_it_did_not_make(
@@ -317,6 +345,17 @@ def test_the_publish_job_clears_the_cache_folder_before_restoring_it():
     assert all(p.startswith(folder + "/") for p in restore["with"]["path"].splitlines())
     build = steps[names.index("Build the feed")]
     assert build["with"]["cache"] == folder
+    # The OSM extract (1.5 GB) must survive between runs: never under runner.temp, which the
+    # runner wipes, and never under the folder this step deletes.
+    cleared = clear["run"].strip().removeprefix("rm -rf ").strip('"')
+    assert cleared.startswith("${{ runner.temp }}/")
+    pbf = build["with"]["pbf"]
+    assert pbf == "${{ runner.workspace }}/../radares-pbf/spain-latest.osm.pbf"
+    assert not pbf.startswith(cleared) and "runner.temp" not in pbf
+    refresh = steps[names.index("Refresh the OpenStreetMap extract")]
+    assert names.index("Refresh the OpenStreetMap extract") < names.index("Build the feed")
+    assert refresh["env"]["PBF_DIR"] == "${{ runner.workspace }}/../radares-pbf"
+    assert refresh["continue-on-error"] is True  # a failed download never stops the feed
 
 
 def report_step() -> str:
@@ -360,6 +399,29 @@ def test_the_build_refuses_to_publish_an_empty_feed(tmp_path, features, code):
     assert "| dgt | ok |" in summary.read_text("utf-8") and "a   b c" in summary.read_text("utf-8")
 
 
+def test_only_the_publish_job_downloads_the_osm_extract():
+    """The pull request job runs the roads step on the committed clip; Geofabrik is reached
+    only by the scheduled publish, once a week."""
+    jobs = feed_jobs()
+    assert "geofabrik" in str(jobs["publish"]).lower()
+    assert "geofabrik" not in str(jobs["check"]).lower()
+    build = next(s for s in jobs["check"]["steps"] if s.get("name") == "Build the feed")
+    assert build["with"]["pbf"] == "tests/fixtures/roads/clip.osm.pbf"
+    assert (ROOT / build["with"]["pbf"]).exists()
+
+
+def test_the_image_never_installs_the_roads_group():
+    """pyosmium is for the published feed only; Home Assistant users never download it."""
+    pyproject = (ROOT / "pyproject.toml").read_text("utf-8")
+    assert "default-groups" not in pyproject
+    dockerfile = (ROOT / "Dockerfile").read_text("utf-8")
+    syncs = [line for line in dockerfile.splitlines() if "uv sync" in line]
+    assert syncs and all("--no-dev" in line for line in syncs)
+    assert not any("--group" in line or "--all-groups" in line for line in syncs)
+    action = (ROOT / ".github" / "actions" / "build-feed" / "action.yml").read_text("utf-8")
+    assert "uv sync --locked --no-dev --group roads" in action
+
+
 def test_the_pull_request_build_gives_up_fast_on_spanish_only_sources(monkeypatch):
     jobs = feed_jobs()
     assert int(jobs["check"]["env"]["RADARES_SPANISH_IP_TIMEOUT"]) <= 30
@@ -400,3 +462,31 @@ def test_the_pull_request_build_gives_up_fast_on_spanish_only_sources(monkeypatc
     monkeypatch.delenv("RADARES_SPANISH_IP_TIMEOUT")
     cli.collect(date(2026, 9, 28), save_history=False)
     assert set(seen.values()) == {90}
+
+
+def test_the_build_summary_reports_the_roads_block(tmp_path):
+    site = tmp_path / "_site"
+    site.mkdir()
+    roads = {
+        "file": "roads.json",
+        "status": "stale",
+        "osm_date": "2026-10-20",
+        "stretches_followed": 1313,
+        "points_with_approaches": 2233,
+        "bytes": 810_310,
+        "error": "RoadsError: only 1 of 9 radars got an approach",
+    }
+    status = {"features": 1, "sources": [], "roads": roads}
+    feed = {"type": "FeatureCollection", "features": [{"type": "Feature"}]}
+    (site / "status.json").write_text(json.dumps(status), "utf-8")
+    (site / "feed.geojson").write_text(json.dumps(feed), "utf-8")
+    summary = tmp_path / "summary.md"
+    env = {**os.environ, "GITHUB_STEP_SUMMARY": str(summary)}
+    run = subprocess.run(
+        [sys.executable, "-c", report_step()], cwd=tmp_path, env=env, capture_output=True, text=True
+    )
+    assert run.returncode == 0, run.stdout + run.stderr
+    text = summary.read_text("utf-8")
+    assert "roads.json: stale, 810,310 bytes, OSM data of 2026-10-20" in text
+    assert "stretches_followed 1313, points_with_approaches 2233" in text
+    assert "roads error: RoadsError: only 1 of 9" in text

@@ -1,7 +1,7 @@
 # Data license
 
 The code in this repository is under [GPL-3.0-or-later](LICENSE). This file covers the data: the
-published feed (`feed.geojson`) and its `status.json`.
+published feed (`feed.geojson`), its `status.json` and the road geometry beside it (`roads.json`).
 
 ## The feed is under ODbL 1.0
 
@@ -19,6 +19,19 @@ The ODbL covers the database as a collection. Each record in it stays under its 
 listed below, and you must respect those too when you reuse a record. Salamanca's records are under
 the GNU Free Documentation License, which asks that a modified version be released under the GFDL as
 well.
+
+## roads.json
+
+`roads.json` holds, for the radars and stretches of the feed, the road under each stretch and the road
+leading to each radar, taken from the OpenStreetMap extract of Spain
+([docs/roads.md](docs/roads.md)). It is a database derived from OpenStreetMap, offered under the
+[ODbL 1.0](https://opendatacommons.org/licenses/odbl/1-0/) and credited "© OpenStreetMap
+contributors" in its `attribution` field.
+
+The feed's `bearing`, `direction_semantics`, `direction_confidence` and `bearing_source` properties are
+worked out through OpenStreetMap geometry. A feature that carries them, or has an entry in
+`roads.json`, gets `; road: © OpenStreetMap contributors (ODbL 1.0)` added to its `attribution`,
+unless it already credits OpenStreetMap.
 
 ## Sources and their attributions
 
