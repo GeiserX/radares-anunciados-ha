@@ -165,6 +165,8 @@ def test_a_scheduled_run_never_calls_a_source_ok_from_a_download_it_did_not_make
     # earlier restores bring back entries saved under an older path list (actions/cache matches
     # an entry only on its exact list); they may only cover paths that are still kept
     assert all(set(r) <= set(saved) for r in restores), "a restore keeps an unsaved path"
+    # the entries saved before geocoded/ was kept hold DGT's last good result (2026-10-23)
+    assert restores == [["sources", "announced.json"], saved], "the legacy restore is gone"
     kept = saved
     assert "" not in kept, "the whole cache folder, downloads included, is kept between runs"
 
