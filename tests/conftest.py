@@ -1,6 +1,3 @@
-import os
-from pathlib import Path
-
 import pytest
 
 from radares_anunciados import osm_limits
@@ -29,10 +26,6 @@ def no_geocoder_requests(monkeypatch, tmp_path):
         raise OSError("tests never touch the network")
 
     monkeypatch.setattr(geocode.Geocoder, "_get", offline)
-
-    # the answers go to the test's RADARES_CACHE, or a folder of its own: never ~/.cache
-    def path(self):
-        root = os.environ.get("RADARES_CACHE") or tmp_path
-        return Path(root) / "geocoded" / f"{self.town.ine}.json"
-
-    monkeypatch.setattr(geocode.Geocoder, "_path", path)
+    # the answers go to the test's own cache folder, never ~/.cache; a test that
+    # sets RADARES_CACHE itself moves them there, through the real Geocoder._path
+    monkeypatch.setenv("RADARES_CACHE", str(tmp_path / "cache"))

@@ -8,7 +8,11 @@
   the road a road number names ("Auxiliar MU-30"), then CartoCiudad, Spain's official street register
   (IGN, CC BY 4.0), and Nominatim. Over eight Murcia weeks this places 47 of 47 streets, against 41
   before; over León's September post and five iLeón weeks 97 of 97, against 96. Every geocoder answer is cached, so a street is
-  asked once. A radar placed from CartoCiudad credits it in its attribution.
+  asked once. A radar placed from CartoCiudad credits it in its attribution. A geocoder answer of
+  the stated street type wins over a nearer namesake of another type ("Avenida de Murcia", not the
+  "Carretera de Murcia"), and Nominatim answers count only as OSM ways of that town. A service road
+  named by its road number ("Auxiliar MU-30") takes its own mapped ways, or else the main road's
+  line with town-street circles, never the main road's limit.
 - `status.json` has a `streets` block for each list source: streets announced, how many each method
   placed, and the names left unplaced.
 

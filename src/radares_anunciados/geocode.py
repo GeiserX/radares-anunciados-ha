@@ -38,7 +38,7 @@ from typing import Any
 
 from . import net
 from .geo import distance_m
-from .streets import NEAR_M, Line, fold, place_words, similarity
+from .streets import NEAR_M, Line, fold, place_words, similarity, street_key
 
 log = logging.getLogger(__name__)
 
@@ -179,6 +179,13 @@ def _gap(lines: list[Line], anchors: list[tuple[float, float]]) -> float:
     return min((distance_m(p, a) for line in lines for p in line for a in anchors), default=1e12)
 
 
+def same_kind(street: str, name: str) -> bool:
+    """Whether ``name`` is of the street type ``street`` states ("Avenida de
+    Murcia" is not "Carretera de Murcia"). A name with no type matches any."""
+    kind = street_key(street)[0]
+    return kind is None or street_key(name)[0] == kind
+
+
 def choose(
     street: str,
     district: str | None,
@@ -188,12 +195,17 @@ def choose(
     """The candidate that is the announced street, or None.
 
     A candidate is ``{"name", "where", "lines"}``: the street's name, its full
-    address (district, town) and its line as (lat, lon) points.
+    address (district, town) and its line as (lat, lon) points. The closest
+    name wins, then the stated street type ("Avenida", "Carretera"), and only
+    then the distance to the district: a namesake of another type is taken
+    only when none of the stated type is there, as ``streets.place`` does.
     """
     named = [
-        (similarity(street, c["name"]), c) for c in candidates if c.get("lines") and any(c["lines"])
+        ((similarity(street, c["name"]), same_kind(street, c["name"])), c)
+        for c in candidates
+        if c.get("lines") and any(c["lines"])
     ]
-    named = [(s, c) for s, c in named if s >= SIMILAR]
+    named = [(s, c) for s, c in named if s[0] >= SIMILAR]
     if not named:
         return None
     if anchors:
@@ -201,8 +213,9 @@ def choose(
         near = [n for n in near if n[1] <= NEAR_M]
         if not near:
             return None
-        # the closest name first, then the closest street, with its other pieces:
-        # CartoCiudad keeps one street as several records ("CALLE MAYOR, El Raal")
+        # the closest name of the stated type first, then the closest street, with
+        # its other pieces: CartoCiudad keeps one street as several records
+        # ("CALLE MAYOR, El Raal")
         best = max(n[0] for n in near)
         top = [n for n in near if n[0] == best]
         first = min(top, key=lambda n: n[1])[2]
@@ -276,9 +289,14 @@ def _cartociudad(geocoder: Geocoder, street: str, district: str | None) -> list[
                 found.setdefault(str(c["id"]), c)
     wanted = place_words(district) if district else frozenset()
 
-    def rank(c: dict) -> tuple[float, bool]:
+    def rank(c: dict) -> tuple[float, bool, bool]:
         where = set(fold(f"{c['address']} {c.get('poblacion') or ''}").split())
-        return similarity(street, _street_part(c["address"])), bool(wanted) and wanted <= where
+        name = _street_part(c["address"])
+        return (
+            similarity(street, name),
+            same_kind(street, name),
+            bool(wanted) and wanted <= where,
+        )
 
     # Only the likely ones get their line asked: one request each.
     likely = sorted((c for c in found.values() if rank(c)[0] >= SIMILAR), key=rank, reverse=True)
@@ -331,6 +349,11 @@ def _nominatim(geocoder: Geocoder, street: str, district: str | None) -> list[di
             "limit": "10",
         },
     )
+    # A road is an OSM way; a node tagged highway (a bus stop, a crossing) named
+    # after the street is not the street. The answer must name the town itself
+    # as one part of its address, not only a region named after it ("Región de
+    # Murcia" on an Alcantarilla street).
+    town = {fold(geocoder.town.name)} | {fold(p) for p in geocoder.town.name.split("/")}
     return [
         {
             "name": r.get("name") or "",
@@ -339,6 +362,8 @@ def _nominatim(geocoder: Geocoder, street: str, district: str | None) -> list[di
         }
         for r in answer or []
         if r.get("category") == "highway"
+        and r.get("osm_type") == "way"
+        and town & {fold(p) for p in (r.get("display_name") or "").split(",")}
     ]
 
 

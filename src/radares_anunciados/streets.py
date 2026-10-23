@@ -265,6 +265,8 @@ def _places(elements: list[dict]) -> dict[str, list[tuple[float, float]]]:
 
 
 Line = list[tuple[float, float]]
+# The OSM highway values of a road beside a numbered one: its service road, its slip roads.
+_SIDE_ROAD = re.compile(r"service|unclassified|.+_link")
 Way = tuple[Line, int | None]  # points and the way's maxspeed
 
 
@@ -340,6 +342,7 @@ def place(
     ways: dict[tuple[str | None, str], list[Way]] = {}
     loose: dict[tuple[str | None, tuple[str, ...]], list[Way]] = {}
     roads: dict[str, list[Way]] = {}
+    side_roads: dict[str, list[Way]] = {}  # the service roads and slip roads of a road
     seen: set[int] = set()
     for el in elements:
         if el["type"] == "way" and "geometry" in el and el["id"] not in seen:
@@ -352,6 +355,8 @@ def place(
             for ref in tags.get("ref", "").split(";"):
                 if ref.strip():
                     roads.setdefault(ref.strip().replace(" ", ""), []).append(way)
+                    if _SIDE_ROAD.fullmatch(tags.get("highway", "")):
+                        side_roads.setdefault(ref.strip().replace(" ", ""), []).append(way)
 
     def runs_of(same_type: list[Way], any_type: list[Way], anchors) -> list[Way]:
         if anchors is None:
@@ -377,14 +382,21 @@ def place(
             anyt = [w for _, g in named for w in g]
             runs, method = runs_of(same, anyt, anchors), "osm_fuzzy"
         road = road_number(item.street)
+        limit_known = True
         if not runs and road:
-            runs, method = runs_of(roads.get(road, []), [], anchors), "osm_road"
+            # "Auxiliar MU-30" is the service road beside the MU-30: its own ways
+            # when OSM tags them with the number, else the main road's, but then
+            # without the main road's limit (120 would draw motorway-sized circles
+            # for a radar on a 50 road): the circles cover the main road too.
+            runs, method = runs_of(side_roads.get(road, []), [], anchors), "osm_road"
+            if not runs:
+                runs, limit_known = runs_of(roads.get(road, []), [], anchors), False
         if not runs and geocoder is not None:
             found = geocoder.street(item.street, item.place, anchors or [])
             if found:
                 lines = [(line, None) for line in found.lines]
                 runs, method = (_near(lines, anchors) if anchors else lines), found.method
-        limit = _limit(runs)
+        limit = _limit(runs) if limit_known else None
         radius = radius_m(limit) if callable(radius_m) else radius_m
         centres = cover([line for line, _ in runs], radius)
         result[item] = Placed(centres, limit, radius, method if centres else "")

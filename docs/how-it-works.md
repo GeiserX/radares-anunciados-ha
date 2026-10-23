@@ -64,15 +64,20 @@ When that finds nothing, three more steps run, each only for the streets the ear
    Valencian, Galician or Basque counts as the Spanish one ("Carrer", "Rúa", "Miracruz kalea"). A
    trailing abbreviation moves to the front ("San Ignacio de Loyola Avda."). León also takes a name
    with a typo, when one in-town name is alike enough and no other ties it.
-5. A road number in the name ("Auxiliar MU-30", "Carretera Auxiliar A-30"): the road with that
-   number near the district. The circles along it cover the service road beside it.
+5. A road number in the name ("Auxiliar MU-30", "Carretera Auxiliar A-30"): the service road or
+   slip roads OpenStreetMap tags with that number near the district. When it tags none, the main
+   road with that number: its circles cover the main road too, so a driver on the main road is
+   warned as well, and they are sized for a town street, never for the main road's limit.
 6. The geocoders (`geocode.py`). First [CartoCiudad](https://www.cartociudad.es), Spain's official
    street register from the IGN: the street by name inside the municipality, and inside the district
    when one is given, then the street's whole line. Then [Nominatim](https://nominatim.org),
-   OpenStreetMap's own search, at most one request a second. An answer counts only if it is a street
+   OpenStreetMap's own search, at most one request a second, taking only OSM ways (a bus stop named
+   after the street is not the street). An answer counts only if it is a street
    of that municipality, its name is the announced one or nearly (85% of its letters in common once
    the street type and small words go), and it lies within 5 km of the district when the district is
-   on the map. When the district is not on the map, the answer's address must name it. Several
+   on the map. Among equally close names the stated street type wins ("Avenida de Murcia" over a
+   nearer "Carretera de Murcia"); another type is taken only when none of the stated one is there.
+   When the district is not on the map, the answer's address must name it. Several
    streets of the name and no district to choose between them give no answer. Every answer, an empty
    one too, is kept in `geocoded/<INE code>.json` in the cache folder: a street found is not asked
    again for 180 days, one not found for 14. A run asks each town at most 60 requests.

@@ -6,6 +6,7 @@ served by a fake ``Geocoder._get``: tests never touch the network.
 
 import json
 import re
+import urllib.parse
 from datetime import date
 from pathlib import Path
 
@@ -34,25 +35,37 @@ EL_RAAL = (38.04, -1.03)
 LOS_DOLORES = (37.9769428, -1.105154)
 
 
+# The real request method, before conftest's offline fake replaces it.
+REAL_GET = Geocoder._get
+
+
 @pytest.fixture
 def answers(monkeypatch):
-    """A fake ``Geocoder._get`` over the fixtures; returns the requests it served."""
+    """The fixtures served as ``net.get`` would, under the real ``Geocoder._get``,
+    so its budget and its wait between requests run as in a real run (the
+    sleeps are recorded, not slept). Returns the requests that reached the
+    network, as (provider, params)."""
     asked: list[tuple[str, dict]] = []
 
-    def fake(self, provider, url, params):
-        if self.budget <= 0:
-            raise geocode._OutOfBudget
-        self.budget -= 1
-        asked.append((provider, dict(params)))
+    def get(url, timeout=90, tries=3, **kw):
+        base, query = url.split("?", 1)
+        params = dict(urllib.parse.parse_qsl(query))
+        provider = "nominatim" if base == geocode.NOMINATIM else "cartociudad"
+        asked.append((provider, params))
         if provider == "nominatim":
-            return NOMINATIM if fold_q(params["street"]) == "carril molino batan" else []
-        if url.endswith("/find"):
-            return CARTO["find"].get(params["id"])
-        if params.get("poblacion_filter") == "El Raal" and params["q"] == "Calle Mayor":
-            return CARTO["candidates Calle Mayor El Raal"]
-        return CARTO.get(f"candidates {params['q']}", [])
+            answer = NOMINATIM if fold_q(params["street"]) == "carril molino batan" else []
+        elif base.endswith("/find"):
+            answer = CARTO["find"].get(params["id"])
+        elif params.get("poblacion_filter") == "El Raal" and params["q"] == "Calle Mayor":
+            answer = CARTO["candidates Calle Mayor El Raal"]
+        else:
+            answer = CARTO.get(f"candidates {params['q']}", [])
+        return json.dumps(answer).encode()
 
-    monkeypatch.setattr(Geocoder, "_get", fake)
+    monkeypatch.setattr(Geocoder, "_get", REAL_GET)
+    monkeypatch.setattr(geocode.net, "get", get)
+    monkeypatch.setattr(geocode.time, "sleep", lambda s: None)
+    monkeypatch.setattr(geocode, "_last", {})
     return asked
 
 
@@ -143,19 +156,37 @@ def test_place_finds_a_name_with_a_small_word_more():
 
 
 def test_place_follows_the_road_a_road_number_names():
-    overpass = json.dumps(
-        {
-            "elements": [
-                EL_PALMAR,
-                _way(11, None, [(37.94, -1.15), (37.945, -1.14)], ref="MU-30", highway="motorway"),
-            ]
-        }
-    ).encode()
+    motorway = _way(
+        11, None, [(37.94, -1.15), (37.945, -1.14)], ref="MU-30", highway="motorway", maxspeed="120"
+    )
+    overpass = json.dumps({"elements": [EL_PALMAR, motorway]}).encode()
     item = Announced("Auxiliar MU-30", "El Palmar")
     assert road_number(item.street) == "MU-30"
     assert road_number("Carretera Auxiliar A-30") == "A-30"
-    placed = place([item], overpass, 300)[item]
+    radius = {None: 300, 50: 250, 120: 800}.__getitem__
+    placed = place([item], overpass, radius)[item]
     assert placed.centres and placed.method == "osm_road"
+    # the radar is on the service road: never the motorway's limit and circles
+    assert (placed.maxspeed, placed.radius_m) == (None, 300)
+
+
+def test_a_road_number_takes_its_service_road_when_mapped():
+    motorway = _way(
+        11, None, [(37.94, -1.15), (37.945, -1.14)], ref="MU-30", highway="motorway", maxspeed="120"
+    )
+    service = _way(
+        12,
+        None,
+        [(37.941, -1.151), (37.946, -1.141)],
+        ref="MU-30",
+        highway="service",
+        maxspeed="50",
+    )
+    overpass = json.dumps({"elements": [EL_PALMAR, motorway, service]}).encode()
+    item = Announced("Auxiliar MU-30", "El Palmar")
+    radius = {None: 300, 50: 250, 120: 800}.__getitem__
+    placed = place([item], overpass, radius)[item]
+    assert placed.method == "osm_road" and (placed.maxspeed, placed.radius_m) == (50, 250)
 
 
 def test_the_ways_query_asks_for_the_road_number_too():
@@ -246,6 +277,69 @@ def test_choose_only_takes_a_name_close_enough():
     assert choose("Calle Mayor", None, near, [{"name": "CALLE MAYOR", "where": "", "lines": line}])
 
 
+def _cand(name, lat, lon):
+    return {"name": name, "where": "", "lines": [[(lat, lon), (lat + 0.0005, lon)]]}
+
+
+def test_the_stated_street_type_wins_over_a_nearer_namesake():
+    near = [(38.0, -1.1)]
+    calle = _cand("CALLE MAYOR", 38.01, -1.1)  # 1.1 km from the district
+    plaza = _cand("PLAZA MAYOR", 38.0005, -1.1)  # 55 m
+    assert choose("Calle Mayor", None, near, [plaza, calle])["name"] == "CALLE MAYOR"
+    avenida = _cand("AVENIDA DE MURCIA", 38.01, -1.1)
+    carretera = _cand("CARRETERA DE MURCIA", 38.0005, -1.1)
+    assert choose("Avenida de Murcia", None, near, [carretera, avenida])["name"] == (
+        "AVENIDA DE MURCIA"
+    )
+    # with none of the stated type, a namesake of another type is still taken
+    assert choose("Calle Mayor", None, near, [plaza])["name"] == "PLAZA MAYOR"
+    # and with no district on the map, the same
+    assert choose("Calle Mayor", None, [], [plaza, calle])["name"] == "CALLE MAYOR"
+
+
+def test_cartociudad_asks_the_line_of_the_stated_type_first(monkeypatch):
+    def record(n, kind):
+        return {
+            "id": f"30030{n:07d}",
+            "muniCode": "30030",
+            "type": "callejero",
+            "address": f"{kind} DE MURCIA, Murcia (Murcia)",
+        }
+
+    others = [record(i, k) for i, k in enumerate(["CARRETERA", "CAMINO", "PLAZA", "CARRIL"])]
+    avenida = record(9, "AVENIDA")
+    asked_lines = []
+
+    def fake(self, provider, url, params):
+        if url.endswith("/find"):
+            asked_lines.append(params["id"])
+            return {"geom": "LINESTRING(-1.1 38.0,-1.1 38.001)"}
+        return [*others, avenida]
+
+    monkeypatch.setattr(Geocoder, "_get", fake)
+    found = geocode._cartociudad(Geocoder(murcia.TOWN), "Avenida de Murcia", None)
+    assert asked_lines[0] == avenida["id"]
+    assert found[0]["name"] == "AVENIDA DE MURCIA"
+
+
+def test_nominatim_takes_only_ways_of_the_town(monkeypatch):
+    way = NOMINATIM[0]
+    stop = {**way, "osm_type": "node", "type": "bus_stop"}  # named after the street
+    elsewhere = {
+        **way,
+        "display_name": "Carril Molino del Batán, Alcantarilla, Área Metropolitana de Murcia, "
+        "Región de Murcia, 30820, España",
+    }
+    monkeypatch.setattr(Geocoder, "_get", lambda self, p, u, q: [stop, elsewhere, way])
+    found = geocode._nominatim(Geocoder(murcia.TOWN), "Carril Molino Batán", None)
+    assert [f["where"] for f in found] == [way["display_name"]]
+    donostia = {**way, "display_name": "Miracruz kalea, Donostia/San Sebastián, Gipuzkoa, España"}
+    monkeypatch.setattr(Geocoder, "_get", lambda self, p, u, q: [donostia])
+    from radares_anunciados.sources import donostia_movil
+
+    assert geocode._nominatim(Geocoder(donostia_movil.TOWN), "Calle Miracruz", None)
+
+
 def test_answers_are_cached_found_and_not_found(answers):
     g = Geocoder(murcia.TOWN)
     g.street("Calle Marbella", "El Esparragal", [EL_ESPARRAGAL])
@@ -286,15 +380,19 @@ def test_wkt_lines():
     assert wkt_lines(None) == []
 
 
-def test_nominatim_is_asked_at_most_once_a_second(monkeypatch):
-    sleeps = []
+def test_nominatim_is_asked_at_most_once_a_second(answers, monkeypatch):
+    sleeps: list[float] = []
     monkeypatch.setattr(geocode.time, "sleep", sleeps.append)
-    monkeypatch.setattr(geocode, "_last", {})
-    geocode._wait("nominatim")  # never asked: no wait
-    assert sleeps == []
-    geocode._last["nominatim"] = geocode.time.monotonic()
-    geocode._wait("nominatim")
+    g = Geocoder(murcia.TOWN, budget=2)
+    # not CartoCiudad: only the Nominatim requests, through the real _get
+    for street in ("Carril Molino Batán", "Calle Nada"):
+        assert g._candidates("nominatim", street, None) is not None
+    assert [p for p, _ in answers] == ["nominatim", "nominatim"]
+    # the first request never waits; the second waits out the second since the first
     assert len(sleeps) == 1 and 1.0 < sleeps[0] <= 1.1
+    # a third request past the budget never reaches the network
+    assert g._candidates("nominatim", "Calle Otra", None) is None
+    assert len(answers) == 2
 
 
 # ---- credit and report ----------------------------------------------------------
