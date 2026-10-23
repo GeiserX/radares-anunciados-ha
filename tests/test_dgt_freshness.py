@@ -100,7 +100,7 @@ def test_nothing_known_before_any_check():
     assert dgt_freshness.check(get=lambda: (UNDATED, None)) is None
 
 
-def test_watch_checks_before_each_fetch_and_never_fails_it(monkeypatch):
+def test_watch_checks_before_each_fetch_and_dating_never_fails_it(monkeypatch):
     asked = []
     monkeypatch.setattr(dgt, "get", lambda max_age_s=86_400: asked.append(max_age_s) or (XML, None))
     result = SourceResult()
@@ -108,12 +108,26 @@ def test_watch_checks_before_each_fetch_and_never_fails_it(monkeypatch):
     assert source.fetch(ctx()) is result
     assert asked == [86_400]
     assert dgt_freshness.last_modified() == PUBLISHED
-
-    def down(max_age_s=86_400):
-        raise OSError("timed out")
-
-    monkeypatch.setattr(dgt, "get", down)
+    # a file the check cannot date still gets fetched
+    monkeypatch.setattr(dgt, "get", lambda max_age_s=86_400: (UNDATED, None))
     assert source.fetch(ctx()) is result
+
+
+def test_a_dgt_outage_asks_each_host_once(monkeypatch):
+    """Both hosts down: the check and the fetch share one download, so the whole
+    fetch asks each host once, not once for the check and again for the fetch."""
+    asked = _hosts(monkeypatch, {u: OSError("HTTP Error 502") for u in dgt.URLS})
+    with pytest.raises(OSError, match="no host answered"):
+        sources.REGISTRY["dgt"].fetch(ctx())
+    assert asked == list(dgt.URLS)
+
+
+def test_a_time_without_offset_is_read_in_spain_for_the_day_and_the_age():
+    naive = XML.replace(b"2025-12-18T09:56:52.406+01:00", b"2025-12-18T09:56:52.406")
+    assert naive != XML
+    assert dgt.published_day(naive, None) == "2025-12-18"
+    assert dgt_freshness.published(naive, None) == PUBLISHED  # Madrid is UTC+1 in December
+    assert dgt_freshness.check(now=ASKED, get=lambda: (naive, None)) == ASKED - PUBLISHED
 
 
 # --- the two hosts -------------------------------------------------------------

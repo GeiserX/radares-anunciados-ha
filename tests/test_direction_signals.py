@@ -137,3 +137,16 @@ def test_home_assistant_zones_ignore_the_new_fields():
     bare = [replace(r, road_ref=None, km=None, km_direction=None) for r in radars]
     assert bare != radars
     assert ha.plan([], ha.zoned(radars)) == ha.plan([], ha.zoned(bare))
+
+
+def test_a_direction_outside_the_contract_is_left_out():
+    """DATEX allows more values than positive, negative and both; only those three
+    reach the feed, and `direction` does not change."""
+    odd = DGT.replace(b"directionRelative>positive<", b"directionRelative>unknown<")
+    assert odd != DGT
+    before = by_id(r for r in dgt.parse(DGT, None) if r.kind == "fixed")
+    after = by_id(r for r in dgt.parse(odd, None) if r.kind == "fixed")
+    assert before["dgt-CABINACINEMOMETRO_120001"].km_direction == "positive"
+    assert after["dgt-CABINACINEMOMETRO_120001"].km_direction is None
+    assert {r.km_direction for r in after.values()} == {None}
+    assert {i: r.direction for i, r in after.items()} == {i: r.direction for i, r in before.items()}

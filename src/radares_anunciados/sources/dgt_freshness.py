@@ -47,7 +47,7 @@ def published(xml: bytes, modified: str | None) -> float | None:
     """Epoch seconds of the file's <publicationTime>, else of ``modified`` (its
     Last-Modified header), else None."""
     when = dgt.publication_time(xml)
-    if when is not None and when.tzinfo is not None:
+    if when is not None:
         return when.timestamp()
     return parse_last_modified(modified)
 
@@ -101,11 +101,14 @@ def age_s(now: float | None = None) -> float | None:
 
 
 def watch(source: Source) -> Source:
-    """``source`` with a freshness check before each fetch. The check never
-    fails the fetch, and the fetch then reads the copy it cached."""
+    """``source`` with a freshness check before each fetch. The file is downloaded
+    once: the check dates that copy, and the fetch then reads it from the cache.
+    Dating it never fails the fetch. A failed download fails it at once, without
+    asking the same hosts a second time from ``source.fetch``."""
 
     def fetch(ctx: Context) -> SourceResult:
-        check(get=lambda: dgt.get(ctx.max_age_s))
+        xml, header = dgt.get(ctx.max_age_s)
+        check(get=lambda: (xml, header))
         return source.fetch(ctx)
 
     return replace(source, fetch=fetch)

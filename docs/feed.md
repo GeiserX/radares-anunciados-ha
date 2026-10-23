@@ -79,8 +79,8 @@ three: the file's two ends of one section sometimes disagree, so a section stays
 The publish workflow can add, after the feed is built, a travel bearing worked out from these signals and
 the OpenStreetMap road under each radar: `bearing` (integer, 0 to 359), `direction_semantics` (`"travel"`),
 `direction_confidence` (`"high"` or `"low"`) and `bearing_source`. The road lines and the approach to each
-radar are not in this file: they live in `roads.json` beside it. Both are described in
-[`roads.md`](roads.md).
+radar are not in this file: they live in `roads.json` beside it. Both are described in `docs/roads.md`
+once the roads step ships.
 
 ## DGT data: hosts and date
 

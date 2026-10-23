@@ -13,7 +13,7 @@ import xml.etree.ElementTree as ET
 from datetime import datetime
 
 from .. import net
-from ..model import Radar, SourceResult, Stretch, dated
+from ..model import SPAIN, Radar, SourceResult, Stretch, dated
 from .base import Context, Source
 
 # The same file on two hosts, read in this order. infocar answered HTTP 502 from
@@ -169,14 +169,17 @@ def parse_all(
 
 
 def publication_time(xml: bytes) -> datetime | None:
-    """The file's <publicationTime> ("2025-12-18T09:56:52.406+01:00"), or None."""
+    """The file's <publicationTime> ("2025-12-18T09:56:52.406+01:00"), or None.
+    A time written without a UTC offset is read in Spain's zone, the publisher's,
+    so the day and the age always come from the same instant."""
     m = _PUBLICATION_TIME.search(xml[:4096])
     if not m:
         return None
     try:
-        return datetime.fromisoformat(m.group(1).decode("ascii"))
+        when = datetime.fromisoformat(m.group(1).decode("ascii"))
     except ValueError:
         return None
+    return when if when.tzinfo is not None else when.replace(tzinfo=SPAIN)
 
 
 def get(max_age_s: int = 86_400) -> tuple[bytes, str | None]:
