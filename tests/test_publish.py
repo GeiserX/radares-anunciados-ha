@@ -14,6 +14,7 @@ import pytest
 import yaml
 
 from radares_anunciados import cli, net, sources, store
+from radares_anunciados.geocode import Geocoder, Town
 from radares_anunciados.model import REPORTED, Radar, SourceResult, Stretch
 from radares_anunciados.sources import Source
 
@@ -173,9 +174,12 @@ def test_a_scheduled_run_never_calls_a_source_ok_from_a_download_it_did_not_make
 
     def fetch(ctx):
         n = json.loads(net.cached_get("https://example.org/radars"))["n"]
+        # a list street the map missed is asked of the geocoders, whose answers are kept
+        Geocoder(Town("Up", "00000", (0, 0, 1, 1))).street("Calle Nueva", None, [])
         return SourceResult([radar("up", i) for i in range(n)])
 
     monkeypatch.setattr(net, "get", get)
+    monkeypatch.setattr(Geocoder, "_get", lambda self, provider, url, params: [])
     up = Source("up", fetch, "up people", "up licence")
     monkeypatch.setattr(sources, "REGISTRY", {"up": up})
     first = cli.status(cli.collect(date(2026, 9, 28), save_history=True), now=1_790_000_000.0)

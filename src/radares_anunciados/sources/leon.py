@@ -38,9 +38,10 @@ from email.utils import parsedate_to_datetime
 from html import unescape
 
 from .. import net
+from ..geocode import CARTOCIUDAD_CREDIT, SIMILAR, Geocoder, Town, geometry_credit
 from ..model import Radar, SourceResult
 from ..streetnames import expand, same_words, split
-from ..streets import Announced, WeeklyList, fold, place, place_words
+from ..streets import Announced, WeeklyList, fold, loose_key, place, place_words, similarity
 from .base import PUBLIC_SECTOR_REUSE, Context, Source
 
 log = logging.getLogger(__name__)
@@ -51,6 +52,7 @@ PROVINCE = "24"
 # list names in brackets. (south, west, north, east)
 BBOX = (42.54, -5.645, 42.65, -5.52)
 GAP_M = 500  # ways of one name farther apart than this are two streets
+TOWN = Town("León", "24089", BBOX)
 
 RSS = (
     "https://aytoleon.es/es/actualidad/noticias/articulos/_layouts/15/listfeed.aspx"
@@ -350,6 +352,7 @@ class Found:
     item: Announced  # the name drivers read: OSM's name, or the road number
     ways: tuple[dict, ...] = ()
     reason: str = ""  # why it was skipped
+    method: str = "osm"  # how it was found (``streets.Placed.method``)
 
 
 class StreetMap:
@@ -404,8 +407,23 @@ class StreetMap:
         where = note.group(1).strip() if note else ""
         return Announced(street, where if where and self.is_place(where) else None)
 
-    def find(self, item: Announced) -> Found:
+    def _fuzzy(self, street: str) -> list[dict]:
+        """The ways of the one in-town name most like ``street`` (a typo, a word
+        dropped), when that name is alike enough and no other name ties it."""
+        scores: dict[str, float] = {}
+        for _, name in self._names:
+            if name and name not in scores:
+                scores[name] = similarity(street, name)
+        best = max(scores.values(), default=0.0)
+        top = {n for n, sc in scores.items() if sc == best}
+        # "Avenida Padre Isla" and "Avenida del Padre Isla" are one street; two others tie
+        if best < SIMILAR or len({loose_key(n)[1] for n in top}) > 1:
+            return []
+        return [w for w, name in self._names if name in top and self.in_town(w)]
+
+    def find(self, item: Announced, geocoder: Geocoder | None = None) -> Found:
         road = bool(_ROAD.match(item.street))
+        method = "osm"
         if road:
             ways = [w for w in self.ways if item.street in _refs(w)]
         else:
@@ -413,6 +431,22 @@ class StreetMap:
             ways = [w for w, name in self._names if name and same_words(words, split(name)[1])]
             if kind:  # "Avda. Madrid": not Carretera Madrid, if an avenue of that name exists
                 ways = [w for w in ways if split(w["tags"]["name"])[0] == kind] or ways
+            if not ways and item.place is None:
+                ways, method = self._fuzzy(item.street), "osm_fuzzy"
+            if not ways and item.place is None and geocoder is not None:
+                found = geocoder.street(item.street, None, [])
+                if found:
+                    method = found.method
+                    ways = [  # as OSM ways; negative ids, which OSM never uses
+                        {
+                            "type": "way",
+                            "id": -n,
+                            # the list's spelling: CartoCiudad writes "CALLE X"
+                            "tags": {"name": item.street},
+                            "geometry": [{"lat": a, "lon": b} for a, b in line],
+                        }
+                        for n, line in enumerate(found.lines, 1)
+                    ]
         reason = "not on the map"
         if ways and item.place is None:
             # No place given: the street is the council's, inside its municipality.
@@ -425,7 +459,7 @@ class StreetMap:
             return Found(found, reason=reason)
         if item.place is None and label not in ONE_STREET and _groups(ways) > 1:
             return Found(found, reason="name mapped at several places")
-        return Found(found, tuple(ways))
+        return Found(found, tuple(ways), method=method)
 
     def centres(self, found: Found, radius_m: float) -> list[tuple[float, float]]:
         """Circles along the found ways (near the bracketed place, if any)."""
@@ -507,9 +541,11 @@ def to_radars(
     street_map: StreetMap,
     radius_m: Callable[[int | None], float],
     week: list[date],
+    geocoder: Geocoder | None = None,
 ) -> tuple[list[Radar], WeeklyList]:
     """One set of circles per street and day. ``radius_m`` is a function of the
-    published limit. The list reports this week's streets and those skipped."""
+    published limit. The list reports this week's streets, how each was placed,
+    and those skipped. A street not on the map is asked of ``geocoder``."""
     finds: dict[str, Found] = {}
     # One street twice on a day (both shifts, or written two ways): one set of
     # circles, with the higher limit.
@@ -517,7 +553,7 @@ def to_radars(
     for schedule in found:
         for slot in schedule.slots:
             if slot.text not in finds:
-                finds[slot.text] = street_map.find(street_map.announced(slot.text))
+                finds[slot.text] = street_map.find(street_map.announced(slot.text), geocoder)
             f = finds[slot.text]
             key = (slot.day, f.item)
             if key not in best or (slot.maxspeed or 0) > (best[key][1] or 0):
@@ -546,6 +582,8 @@ def to_radars(
                 log.warning("León: could not place %s (%s); skipped", street.label(), why)
                 status.skipped.append(street)
             continue
+        if day in week:
+            status.placed[street.label()] = f.method
         slug = re.sub(r"[^a-z0-9]+", "-", fold(street.label())).strip("-")
         for n, (lat, lon) in enumerate(centres):
             radars.append(
@@ -560,7 +598,7 @@ def to_radars(
                     valid_from=day,
                     valid_to=day,
                     url=schedule.url,
-                    attribution=schedule.attribution,
+                    attribution=geometry_credit(schedule.attribution, f.method),
                     maxspeed=limit,
                     province=PROVINCE,
                 )
@@ -607,7 +645,7 @@ def fetch(ctx: Context) -> SourceResult:
         log.info("no León radar schedule found for the week of %s", week[0])
         return SourceResult(lists=[WeeklyList("leon", week[0])])
     street_map = load_street_map()
-    radars, status = to_radars(found, street_map, ctx.radius.street_m, week)
+    radars, status = to_radars(found, street_map, ctx.radius.street_m, week, Geocoder(TOWN))
     return SourceResult(radars=radars, lists=[status])
 
 
@@ -616,13 +654,15 @@ SOURCE = Source(
     fetch=fetch,
     attribution=(
         "Ayuntamiento de León (ubicación mensual de los radares móviles); "
-        "Redacción ILEÓN, obtenido de ILEÓN (ileon.eldiario.es); geometría © OpenStreetMap"
+        "Redacción ILEÓN, obtenido de ILEÓN (ileon.eldiario.es); geometría © OpenStreetMap "
+        f"y {CARTOCIUDAD_CREDIT}"
     ),
     licence=(
         f"Ayuntamiento de León's posts: {PUBLIC_SECTOR_REUSE}; its portal's terms reserve "
         f"reproduction except for personal and private use ({LEGAL_URL}). Days only iLeón "
         "covers: the facts iLeón reports (street, day, limit), not its text, which is "
-        "CC BY-NC 4.0. Geometry: ODbL 1.0"
+        "CC BY-NC 4.0. Geometry: ODbL 1.0; a street OpenStreetMap misses, CartoCiudad "
+        "(IGN), CC BY 4.0"
     ),
     spanish_ip_hosts=frozenset({"aytoleon.es"}),  # the council; iLeón answers anywhere
     max_age_s=6 * 3600,
