@@ -44,7 +44,13 @@ every source, including those that answer only Spanish addresses, and publishes 
 - [`status.json`](https://geiserx.github.io/radares-anunciados-ha/status.json): per source, `ok`, `stale` (this run
   failed, its last good copy is used) or `missing`, with record counts, the time of its data and the
   source's own last update date when it gives one
+- [`roads.json`](https://geiserx.github.io/radares-anunciados-ha/roads.json): the road under every stretch
+  and the last 1.5 km of road leading to every radar, from OpenStreetMap, so an app can warn along
+  the road instead of in a straight line ([docs/roads.md](docs/roads.md))
 - a map of the feed
+
+Every property of `feed.geojson`, and what may change in it, is in [docs/feed.md](docs/feed.md). The
+radars whose direction the publisher and the map agree on also carry a travel `bearing` there.
 
 The feed includes OpenStreetMap data, so the database is offered under
 [ODbL 1.0](https://opendatacommons.org/licenses/odbl/1-0/) with each source's attribution: see
@@ -60,6 +66,7 @@ source gives one.
 - [How it works](docs/how-it-works.md): sources, street matching, the 20-zone limit, passive zones
 - [Alerting](docs/alerting.md): Prometheus metrics, the health check, alert rules for a failing service
 - [Sources](docs/sources.md): every source, its licence and cadence, and what we checked that publishes nothing usable
+- [feed.geojson](docs/feed.md) and [roads.json](docs/roads.md): the published files, property by property
 
 ## Data sources
 
