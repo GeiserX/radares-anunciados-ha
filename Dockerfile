@@ -1,4 +1,4 @@
-FROM python:3.14.8-slim-trixie
+FROM python:3.15.0-slim-trixie
 
 # The base image ships ca-certificates 20250419, which still trusts the
 # compromised eMudhra intermediates; the Debian update distrusts them.
