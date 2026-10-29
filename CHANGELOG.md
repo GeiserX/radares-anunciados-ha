@@ -1,7 +1,12 @@
 # Changelog
 
-## Unreleased
+## 0.4.0 (2026-10-29)
 
+- Every stretch in the published feed now comes with the road it follows, and every fixed, section
+  and trailer radar with the last 1.5 km of road leading to it, in a new `roads.json` beside the feed.
+  Radars whose signals agree also carry the direction they watch (`bearing`, `direction_confidence`).
+  This is built from OpenStreetMap in the publish workflow only; the Home Assistant image is unchanged
+  by it. See `docs/roads.md`.
 - The OpenStreetMap credit added to an attribution is written in Spanish, like the rest of the
   string: `; carretera: © OpenStreetMap contributors (ODbL 1.0)` for a road geometry or bearing and
   `; límite de velocidad: © OpenStreetMap contributors (ODbL 1.0)` for a speed limit, where they read
@@ -28,6 +33,10 @@
 - The published feed is written without indentation (about a quarter smaller), and DGT and Navarra
   radars carry three new properties: `road_ref`, `km` and `km_direction` (whether the radar watches
   traffic going up or down the km markers). See `docs/feed.md`.
+
+- DGT's radars are back in the published feed after a change to the publish job's cache paths left
+  them out on 2026-10-23.
+- Python 3.15.0 base image and dependency updates.
 
 ## 0.3.1 (2026-10-21)
 

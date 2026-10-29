@@ -26,9 +26,9 @@ This repo is the data side: the sources, the open feed and the Home Assistant zo
 
 ```sh
 export HA_URL=https://homeassistant.example.org HA_TOKEN='<long-lived token>'
-docker run --rm -e HA_URL -e HA_TOKEN drumsergio/radares-anunciados-ha:0.3.1 sync --dry-run
+docker run --rm -e HA_URL -e HA_TOKEN drumsergio/radares-anunciados-ha:0.4.0 sync --dry-run
 mkdir -p data && sudo chown 65534:65534 data  # the container runs as nobody
-docker run -d --name radares -e HA_URL -e HA_TOKEN -v ./data:/data -e RADARES_CACHE=/data drumsergio/radares-anunciados-ha:0.3.1
+docker run -d --name radares -e HA_URL -e HA_TOKEN -v ./data:/data -e RADARES_CACHE=/data drumsergio/radares-anunciados-ha:0.4.0
 ```
 
 Then import the [alert blueprint](blueprints/radar_zone_alert.yaml). Full steps in [Getting started](docs/getting-started.md).
