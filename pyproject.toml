@@ -1,6 +1,6 @@
 [project]
 name = "radares-anunciados-ha"
-version = "0.3.1"
+version = "0.4.0"
 description = "Speed radars announced in Spain (police weekly lists, DGT, OpenStreetMap) as one feed, synced to Home Assistant zones."
 readme = "README.md"
 license = "GPL-3.0-or-later"
