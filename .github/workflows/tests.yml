@@ -4,6 +4,8 @@ on:
   push:
     branches: [main]
   pull_request:
+  # docker-publish.yml calls this so a release runs exactly the tests a PR runs
+  workflow_call:
 
 permissions:
   contents: read
