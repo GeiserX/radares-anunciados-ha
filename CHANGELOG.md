@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.1 (2026-10-29)
+
+- First image of the 0.4 line. The 0.4.0 tag published no image: the release workflow ran its own
+  copy of the tests without the roads dependencies, so the roads tests failed there although every
+  pull request passed. The release now runs the same test workflow pull requests run.
+
 ## 0.4.0 (2026-10-29)
 
 - Stretches in the published feed now come with the road they follow, and fixed, section and trailer
