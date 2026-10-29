@@ -2,9 +2,11 @@
 
 ## 0.4.0 (2026-10-29)
 
-- Every stretch in the published feed now comes with the road it follows, and every fixed, section
-  and trailer radar with the last 1.5 km of road leading to it, in a new `roads.json` beside the feed.
-  Radars whose signals agree also carry the direction they watch (`bearing`, `direction_confidence`).
+- Stretches in the published feed now come with the road they follow, and fixed, section and trailer
+  radars with the last 1.5 km of road leading to them, in a new `roads.json` beside the feed. A
+  stretch or radar with no road found (too short, or no drivable way near it) has no entry. Radars
+  with a resolved direction carry the way they watch (`bearing`); `direction_confidence` is `high`
+  only when two independent signals agree.
   This is built from OpenStreetMap in the publish workflow only; the Home Assistant image is unchanged
   by it. See `docs/roads.md`.
 - The OpenStreetMap credit added to an attribution is written in Spanish, like the rest of the
