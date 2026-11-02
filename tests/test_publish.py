@@ -15,7 +15,7 @@ import yaml
 
 from radares_anunciados import cli, net, sources, store
 from radares_anunciados.geocode import Geocoder, Town
-from radares_anunciados.model import REPORTED, Radar, SourceResult, Stretch
+from radares_anunciados.model import REPORTED, Radar, SourceResult, Stretch, today_in_spain
 from radares_anunciados.sources import Source
 
 ROOT = Path(__file__).parent.parent
@@ -105,7 +105,10 @@ def test_status_says_which_sources_are_fresh_stale_or_missing(monkeypatch):
 
 
 def announced_this_week(source):
-    monday = date.today() - timedelta(days=date.today().weekday())
+    # Spain's date, as the feed uses: the runner's UTC date is still Sunday for
+    # the first hours of Monday in Madrid, and a radar ending that Sunday is gone.
+    today = today_in_spain()
+    monday = today - timedelta(days=today.weekday())
     end = monday + timedelta(days=6)
     return [radar(source, valid_from=monday, valid_to=end)]
 
